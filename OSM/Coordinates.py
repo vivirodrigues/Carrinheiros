@@ -1,4 +1,4 @@
-from OSM import JsonFile
+import JsonFile
 
 
 class Coordinates:
