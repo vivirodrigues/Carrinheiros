@@ -11,7 +11,12 @@ class Coordinates:
         self.min_lon = float('inf')
         self.max_lat = float('-inf')
         self.max_lon = float('-inf')
-        self.main()
+        self.set_response_json()
+        self.set_min_lat()
+        self.set_min_lon()
+        self.set_max_lat()
+        self.set_max_lon()
+        self.set_coordinates()
 
     def set_response_json(self):
         overpass_query = "[out:json];" \
@@ -76,14 +81,6 @@ class Coordinates:
 
     def get_coordinates(self):
         return self.coordinates
-
-    def main(self):
-        self.set_response_json()
-        self.set_min_lat()
-        self.set_min_lon()
-        self.set_max_lat()
-        self.set_max_lon()
-        self.set_coordinates()
 
 
 if __name__ == "__main__":
