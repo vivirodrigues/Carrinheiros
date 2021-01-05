@@ -2,72 +2,41 @@ import JsonFile
 
 
 class Coordinates:
-    def __init__(self, city, id_state_area):
-        self.city = city
-        self.id_state_area = id_state_area
-        self.response_json = {}
+    def __init__(self, coordinates_vector):
+        self.vector = coordinates_vector
+        self.limit = 0.1
         self.coordinates = ''
         self.min_lat = float('inf')
         self.min_lon = float('inf')
         self.max_lat = float('-inf')
         self.max_lon = float('-inf')
-        self.set_response_json()
         self.set_min_lat()
         self.set_min_lon()
         self.set_max_lat()
         self.set_max_lon()
+        self.set_limits()
         self.set_coordinates()
 
-    def set_response_json(self):
-        overpass_query = "[out:json];" \
-                         "relation['type'='boundary']['boundary'='administrative']['name'=" + self.city + "]" \
-                         "(area:" + str(self.id_state_area) + ");way(r);(._;>;);out geom qt;"
-        json_osm = JsonFile.JsonFile(overpass_query)
-        self.response_json = json_osm.get_elements()
-
-    def get_response_json(self):
-        return self.response_json
-
     def set_min_lat(self):
-        lat = []
-        for i in self.response_json:
-            if i.get("type") == "way":
-                bounds = i.get("bounds")
-                lat.append(bounds.get('minlat'))
-        self.min_lat = min(lat)
+        self.min_lat = min(self.vector, key=lambda t: t[0])[0]
 
     def get_min_lat(self):
         return self.min_lat
 
     def set_min_lon(self):
-        lon = []
-        for i in self.response_json:
-            if i.get("type") == "way":
-                bounds = i.get("bounds")
-                lon.append(bounds.get('minlon'))
-        self.min_lon = min(lon)
+        self.min_lon = min(self.vector, key=lambda t: t[1])[1]
 
     def get_min_lon(self):
         return self.min_lon
 
     def set_max_lon(self):
-        lon = []
-        for i in self.response_json:
-            if i.get("type") == "way":
-                bounds = i.get("bounds")
-                lon.append(bounds.get('maxlon'))
-        self.max_lon = max(lon)
+        self.max_lon = max(self.vector, key=lambda t: t[1])[1]
 
     def get_max_lon(self):
         return self.max_lon
 
     def set_max_lat(self):
-        lat = []
-        for i in self.response_json:
-            if i.get("type") == "way":
-                bounds = i.get("bounds")
-                lat.append(bounds.get('maxlat'))
-        self.max_lat = max(lat)
+        self.max_lat = max(self.vector, key=lambda t: t[0])[0]
 
     def get_max_lat(self):
         return self.max_lat
@@ -82,7 +51,14 @@ class Coordinates:
     def get_coordinates(self):
         return self.coordinates
 
+    def set_limits(self):
+        self.min_lat -= 0.02
+        self.min_lon -= 0.02
+        self.max_lon += 0.02
+        self.max_lat += 0.02
+
 
 if __name__ == "__main__":
-    coordinates = Coordinates("Campinas", "3600298204")
+    coordinates = Coordinates([(-22.816008, -47.075614), (-22.816639, -47.074891), (-22.818317, -47.083415), (-22.820244, -47.085422), (-22.823953, -47.087718)])
+    # -47.087718,-22.823953,-47.074891,-22.816008
     print("Coordinates:", coordinates.get_coordinates())

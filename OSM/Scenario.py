@@ -2,27 +2,45 @@ import Coordinates
 import Overpass
 import Download
 import argparse
+import JsonFile
 
 
 class Scenario:
-    def __init__(self, city, state, country):
-        self.city = city
-        self.state = state
-        self.country = country
+    def __init__(self, coord, directory):
+        self.city = 'Campinas'
+        self.state = 'SP'
+        self.country = 'BR'
+        self.iso = ''
+        self.coordinates_list = coord
         self.file_name_osm = 'map.osm'
         self.file_name_geotiff = '22S48_ZN.tif'
-        self.directory = '../maps/'
+        self.directory = directory
         self.id_state_area = 0.0
         self.coordinates_osm = ''
         self.scenario_osm = ''
         self.scenario_geotiff = ''
         self.osm_relation = 3600000000
-        self.main()
+        self.set_city()
+        self.set_state_area()
+        self.set_coordinates_osm()
+        self.set_osm()
+        self.set_geotiff()
+
+    def set_city(self):
+        overpass_query = "[out:json];is_in" + str(self.coordinates_list[0]) + "; out geom qt; "
+        json_osm = JsonFile.JsonFile(overpass_query)
+        response_json = json_osm.get_elements()
+        for i in response_json:
+            tags = i.get("tags")
+            if tags.get("ISO3166-2") is not None:
+                iso = tags.get("ISO3166-2")
+        self.iso = iso
+        print(self.iso)
 
     def set_state_area(self):
-        iso = self.country + '-' + self.state
+        # iso = self.country + '-' + self.state
         # OSM pattern : 3600000000 for relation, 2400000000 for way
-        query_state = "relation['ISO3166-2'='" + iso + "']; (._;>;); out ids;"
+        query_state = "relation['ISO3166-2'='" + self.iso + "']; (._;>;); out ids;"
         api_overpass = Overpass.Overpass(query_state)
         result = api_overpass.get_response()
         self.id_state_area = result.relations[0].id + self.osm_relation
@@ -53,24 +71,18 @@ class Scenario:
             download_file.download_geotiff()
             self.set_geotiff()
 
-    def main(self):
-        self.set_state_area()
-        self.set_coordinates_osm()
-        self.set_osm()
-        self.set_geotiff()
-
 
 if __name__ == "__main__":
-
+    default_coord = "[(-22.816008,-47.075614),(-22.816639,-47.074891),(-22.818317,-47.083415),(-22.820244,-47.085422),(-22.823953,-47.087718)]"
     parser = argparse.ArgumentParser(description='Execution parameters')
-    parser.add_argument('--city', metavar='t', type=str, nargs=1, default=['Campinas'], action='store', help='Scenario City')
-    parser.add_argument('--state', metavar='t', type=str, nargs=1, default=['SP'], action='store', help='Scenario State')
-    parser.add_argument('--country', metavar='t', type=str, nargs=1, default=['BR'], action='store', help='Scenario Country')
+    parser.add_argument('--directory', metavar='t', type=str, nargs=1, default=["../maps/"], action='store', help='File Directory')
+    parser.add_argument("--coord", metavar='t', type=str, nargs=1, default=[default_coord], action='store', help= 'Coord')
 
     args = parser.parse_args()
 
-    city = args.city[0].split('/')[-1]
-    state = args.state[0].split('/')[-1]
-    country = args.country[0].split('/')[-1]
+    directory = args.directory[0].split('/')[-1]
+    coord = args.coord[0]
 
-    Scenario(city, state, country)
+    print("a", directory)
+    print(coord)
+    Scenario(coord, directory)
