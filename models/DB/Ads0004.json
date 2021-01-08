@@ -1,0 +1,22 @@
+{
+    "adId": "0004",
+    "PJ_associated": null,
+    "user_id": "004",
+    "user_name": "Roberval",
+    "description": "Garrafas de refrigerante",
+    "latitude": -22.823953,
+    "longitude": -47.087718,
+    "altitude": 602.0,
+    "type": "Oferta",
+    "operation":"Doação",
+    "days_of_the_week": ["Seg", "Ter", "Qua", "Qui", "Sex"],
+    "unity": "unidades",
+    "status": "Disponivel",
+    "material_type": "plástico",
+    "amount": 30,
+    "user_attending": "000", 
+    "material_subtype": "garrafa",
+    "photo": "http://",
+    "active": true
+ }
+

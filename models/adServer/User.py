@@ -1,5 +1,5 @@
 try:
-    from Scenario import JsonFile
+    from models.adServer import JsonDB
 except:
     pass
 
@@ -93,7 +93,7 @@ class User:
 if __name__ == '__main__':
     id_user = "000"
     file = "User" + id_user
-    file_user = JsonFile.JsonFile(file)
+    file_user = JsonDB.JsonFile(file)
     json_user = file_user.get_file_content()
     carrinheiro = User(json_user)
     print("Test with user:", carrinheiro.get_name())

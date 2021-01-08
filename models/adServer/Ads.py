@@ -1,5 +1,5 @@
 try:
-    from Scenario import JsonFile
+    from models.adServer import JsonDB
 except:
     pass
 
@@ -19,7 +19,7 @@ class Ads:
         self.lon = ''
         self.alt = ''
         self.user_attending = ''
-        self.avaiable_days = ''
+        self.available_days = []
         self.main()
 
     def set_id(self):
@@ -59,11 +59,11 @@ class Ads:
         # define
         pass
 
-    def set_avaiable_days(self):
-        self.avaiable_days = self.json.get("days_of_the_week")
+    def set_available_days(self):
+        self.available_days = self.json.get("days_of_the_week")
 
-    def get_avaiable_days(self):
-        return self.avaiable_days
+    def get_available_days(self):
+        return self.available_days
 
     def get_id(self):
         return self.id
@@ -110,13 +110,13 @@ class Ads:
         self.set_material_type()
         self.set_material_subtype()
         self.set_unity()
-        self.set_avaiable_days()
+        self.set_available_days()
 
 
 if __name__ == '__main__':
     id_ads = "0001"
     file = "Ads" + id_ads
-    file_ads = JsonFile.JsonFile(file)
+    file_ads = JsonDB.JsonFile(file)
     json_ads = file_ads.get_file_content()
     anuncio = Ads(json_ads)
-    print("Test with ads:", anuncio.get_material_subtype())
+    print("Test with ads:", anuncio.get_available_days())

@@ -1,7 +1,6 @@
-from data import User
-from data import Ads
-import JsonFile
+from models.adServer import Ads, User
 import DateTime
+import JsonDB
 
 
 class Path:
@@ -15,13 +14,12 @@ class Path:
         self.end_point = ()
         self.weights = []
         self.materials = []
-        self.file = ''
         self.available_ads = []
         self.main()
 
     def set_carrinheiro(self):
         file_name = get_file_user(self.id_user)
-        file_user = JsonFile.JsonFile(file_name)
+        file_user = JsonDB.JsonDB(file_name)
         json_user = file_user.get_file_content()
         self.carrinheiro = User.User(json_user)
 
@@ -49,7 +47,7 @@ class Path:
         available_ads = []
         for i in orders:
             ads = self.get_ads(i)
-            days_collection = ads.get_avaiable_days()
+            days_collection = ads.get_available_days()
             if weekday_collection in days_collection:
                 available_ads.append(i)
         self.available_ads = available_ads
@@ -77,7 +75,7 @@ class Path:
     @staticmethod
     def get_ads(id_ads):
         file_name = get_file_ads(id_ads)
-        file_ads = JsonFile.JsonFile(file_name)
+        file_ads = JsonDB.JsonDB(file_name)
         json_ads = file_ads.get_file_content()
         ads = Ads.Ads(json_ads)
         return ads
@@ -102,4 +100,5 @@ def get_file_ads(id_ads):
 
 
 if __name__ == "__main__":
-    Path("000")
+    path = Path("000")
+    print(path.get_coordinates_path())

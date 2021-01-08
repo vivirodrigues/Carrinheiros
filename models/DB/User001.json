@@ -1,0 +1,29 @@
+{	
+    "id": "001",	
+	"name": "Maria",
+    "email": "maria@email.com",
+	"password": "senha",
+	"PJ_associated": "aqui vai o CNPJ",
+    "pontuation": 0,
+    "cep": "55555555",
+    "online": true,
+    "token": ["tokens de acesso"],    
+    "interest": "descartar",
+    "latitude": -22.816639,
+    "longitude": -47.074891,
+	"altitude": 606.0,
+    "phone": "91984078877",
+    "photo": "http://",
+    "type": "colaborador",
+    "orders_fulfilled": [],
+    "notifications": [
+		{
+	    "viewed": false,
+        "action": "Conversando",
+        "adId": "0001",
+        "from": "000"
+		}
+	],
+	"conversations": ["ainda falta definir o Schema das conversation"],
+	"origin": "insomnia"
+}

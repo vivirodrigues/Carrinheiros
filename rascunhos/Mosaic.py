@@ -7,7 +7,7 @@ import os
 
 dirpath = r"../maps/"
 out_fp = r"../maps/out.tif"
-# Make a search criteria to select the DEM files
+# Make a search criteria to select the DEM DB
 search_criteria = "*.tif"
 q = os.path.join(dirpath, search_criteria)
 print(q)

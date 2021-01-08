@@ -1,0 +1,22 @@
+{
+    "adId": "0002",
+    "PJ_associated": null,
+    "user_id": "002",
+    "user_name": "Luana",
+    "description": "Jornais amassados",
+    "latitude": -22.818317,
+    "longitude": -47.083415,
+    "altitude": 602.0,
+    "type": "Oferta",
+    "operation":"Doação",
+    "days_of_the_week": ["Seg", "Ter", "Qua", "Qui", "Sex"],
+    "unity": "unidades",
+    "status": "Disponivel",
+    "material_type": "papel",
+    "amount": 30,
+    "user_attending": "000", 
+    "material_subtype": "jornal",
+    "photo": "http://",
+    "active": true
+ }
+

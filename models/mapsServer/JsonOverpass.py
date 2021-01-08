@@ -30,3 +30,9 @@ class JsonFile:
 
     def get_elements(self):
         return self.elements
+
+
+if __name__ == "__main__":
+    overpass_query = "[out:json];is_in(-22.816008, -47.075614); out geom qt;"
+    print("query: ", overpass_query)
+    json_osm = JsonFile(overpass_query)

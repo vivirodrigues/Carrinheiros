@@ -1,0 +1,22 @@
+{
+    "adId": "0003",
+    "PJ_associated": null,
+    "user_id": "003",
+    "user_name": "Patricio",
+    "description": "Latinhas amassadas",
+    "latitude": -22.820244,
+    "longitude": -47.085422,
+    "altitude": 602.0,
+    "type": "Oferta",
+    "operation":"Doação",
+    "days_of_the_week": ["Seg", "Ter", "Qua", "Qui", "Sex"],
+    "unity": "unidades",
+    "status": "Disponivel",
+    "material_type": "aluminio",
+    "amount": 15,
+    "user_attending": "000", 
+    "material_subtype": "lata",
+    "photo": "http://",
+    "active": true
+ }
+

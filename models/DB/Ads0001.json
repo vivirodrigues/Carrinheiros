@@ -1,0 +1,22 @@
+{
+    "adId": "0001",
+    "PJ_associated": null,
+    "user_id": "001",
+    "user_name": "Maria",
+    "description": "Cacos de vidro",
+    "latitude": -22.816639,
+    "longitude": -47.074891,
+    "altitude": 602.0,
+    "type": "Oferta",
+    "operation":"Venda",
+    "days_of_the_week": ["Seg", "Ter", "Qua", "Qui", "Sex"],
+    "unity": "unidades",
+    "status": "Disponivel",
+    "material_type": "vidro",
+    "amount": 50,
+    "user_attending": "000", 
+    "material_subtype": "garrafa",
+    "photo": "http://",
+    "active": true
+ }
+
