@@ -1,4 +1,4 @@
-import JsonFile
+import JsonOverpass
 
 
 class Coordinates:
@@ -22,7 +22,7 @@ class Coordinates:
         overpass_query = "[out:json];" \
                          "relation['type'='boundary']['boundary'='administrative']['name'=" + self.city + "]" \
                          "(area:" + str(self.id_state_area) + ");way(r);(._;>;);out geom qt;"
-        json_osm = JsonFile.JsonFile(overpass_query)
+        json_osm = JsonOverpass.JsonFile(overpass_query)
         self.response_json = json_osm.get_elements()
 
     def get_response_json(self):
