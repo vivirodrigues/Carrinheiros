@@ -9,26 +9,30 @@ class Ads:
         self.json = json
         self.id = ''
         self.user_id = ''
-        self.material_type = ''
-        self.amount = ''
-        self.description = ''
-        self.material_subtype = ''
-        self.unity = ''
         self.type = ''
+        self.material_type = ''
+        self.material_subtype = ''
+        self.amount = ''
+        self.measure_unit = ''
+        self.available_days = []
+        self.user_attending = ''
+        self.status = ''
+        self.coordinates = ()
         self.lat = ''
         self.lon = ''
         self.alt = ''
-        self.user_attending = ''
-        self.available_days = []
         self.main()
 
     def set_id(self):
+        # ad id
         self.id = self.json.get("id")
 
     def set_user_id(self):
+        # id of the user who made the ad
         self.user_id = self.json.get("user_id")
 
     def set_material_type(self):
+        # String("paper", "metal", "glass", "plastic", etc)
         self.material_type = self.json.get("material_type")
 
     def set_material_subtype(self):
@@ -43,14 +47,17 @@ class Ads:
     def set_type(self):
         self.type = self.json.get("type")
 
+    def set_coordinates(self):
+        self.coordinates = tuple(self.json.get("coordinates"))
+
     def set_lat(self):
-        self.lat = self.json.get("latitude")
+        self.lat = self.coordinates[0]
 
     def set_lon(self):
-        self.lon = self.json.get("longitude")
+        self.lon = self.coordinates[1]
 
     def set_alt(self):
-        self.alt = self.json.get("altitude")
+        self.alt = self.coordinates[2]
 
     def set_user_attending(self):
         self.user_attending = self.json.get("user_attending")
@@ -86,6 +93,9 @@ class Ads:
     def get_type(self):
         return self.type
 
+    def get_coordinates(self):
+        return self.coordinates
+
     def get_lat(self):
         return self.lat
 
@@ -99,6 +109,7 @@ class Ads:
         return self.user_attending
 
     def main(self):
+        self.set_coordinates()
         self.set_lat()
         self.set_lon()
         self.set_alt()
@@ -116,7 +127,7 @@ class Ads:
 if __name__ == '__main__':
     id_ads = "0001"
     file = "Ads" + id_ads
-    file_ads = JsonDB.JsonFile(file)
+    file_ads = JsonDB.JsonDB(file)
     json_ads = file_ads.get_file_content()
     anuncio = Ads(json_ads)
-    print("Test with ads:", anuncio.get_available_days())
+    print("Test with ads:", anuncio.get_lon())

@@ -9,19 +9,65 @@ class User:
     def __init__(self, json):
         self.json = json
         self.id = ''
+        self.type = ''
+        self.name = ''
+        self.email = ''
+        self.interest = ''
+        self.attended_ads = []
+        self.coordinates = ()
+        self.coordinates_depot = ()
         self.lat = ''
         self.lon = ''
         self.alt = ''
-        self.name = ''
-        self.email = ''
-        self.orders_fulfilled = []
         self.lat_depot = ''
         self.lon_depot = ''
         self.alt_depot = ''
         self.main()
 
     def set_id(self):
+        # user id
         self.id = self.json.get("id")
+
+    def set_type(self):
+        ###
+        # the user can be a waste collector, artisan or anyone who wants to participate
+        # Strings: ("collector, "artisan", "collaborator")
+        ###
+        self.type = self.json.get("type")
+
+    def set_name(self):
+        # full name
+        self.name = self.json.get("name")
+
+    def set_email(self):
+        self.email = self.json.get("email")
+
+    def set_interest(self):
+        ###
+        # the interest can be in materials dispose, collect or both
+        # Strings : ("dispose", "collect", "both")
+        ###
+        self.interest = self.json.get("interest")
+
+    def set_attended_ads(self):
+        ###
+        # list of attended advertisements by the user
+        ###
+        self.attended_ads = self.json.get("attended_ads")
+
+    def set_coordinates(self):
+        ###
+        # a list with user instant geographic coordinates
+        # list -> tuple (latitude, longitude, altitude)
+        ###
+        self.coordinates = tuple(self.json.get("coordinates"))
+
+    def set_coordinates_depot(self):
+        ###
+        # a list with waste depot geographic coordinates
+        # list -> tuple (latitude, longitude, altitude)
+        ###
+        self.coordinates_depot = tuple(self.json.get("coordinates_depot"))
 
     def set_lat(self):
         self.lat = self.json.get("latitude")
@@ -41,23 +87,38 @@ class User:
     def set_alt_depot(self):
         self.alt_depot = self.json.get("altitude_depot")
 
-    def set_name(self):
-        self.name = self.json.get("name")
+    def get_id(self):
+        return self.id
 
-    def set_email(self):
-        self.email = self.json.get("email")
+    def get_type(self):
+        return self.type
 
-    def set_orders(self):
-        self.orders_fulfilled = self.json.get("orders_fulfilled")
+    def get_name(self):
+        return self.name
+
+    def get_email(self):
+        return self.email
+
+    def get_interest(self):
+        return self.interest
+
+    def get_attended_ads(self):
+        return self.attended_ads
+
+    def get_coordinates(self):
+        return self.coordinates
+
+    def get_coordinates_depot(self):
+        return self.coordinates_depot
 
     def get_lat(self):
         return self.lat
 
-    def get_alt(self):
-        return self.alt
-
     def get_lon(self):
         return self.lon
+
+    def get_alt(self):
+        return self.alt
 
     def get_lat_depot(self):
         return self.lat_depot
@@ -68,32 +129,27 @@ class User:
     def get_alt_depot(self):
         return self.alt_depot
 
-    def get_name(self):
-        return self.name
-
-    def get_email(self):
-        return self.email
-
-    def get_orders(self):
-        return self.orders_fulfilled
-
     def main(self):
+        self.set_id()
+        self.set_type()
+        self.set_name()
+        self.set_email()
+        self.set_interest()
+        self.set_attended_ads()
+        self.set_coordinates()
+        self.set_coordinates_depot()
         self.set_lat()
         self.set_lon()
         self.set_alt()
         self.set_lat_depot()
         self.set_lon_depot()
         self.set_alt_depot()
-        self.set_id()
-        self.set_email()
-        self.set_name()
-        self.set_orders()
 
 
 if __name__ == '__main__':
     id_user = "000"
     file = "User" + id_user
-    file_user = JsonDB.JsonFile(file)
+    file_user = JsonDB.JsonDB(file)
     json_user = file_user.get_file_content()
     carrinheiro = User(json_user)
-    print("Test with user:", carrinheiro.get_name())
+    print("Test with user:", carrinheiro.get_type())

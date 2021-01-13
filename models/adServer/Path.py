@@ -24,26 +24,20 @@ class Path:
         self.carrinheiro = User.User(json_user)
 
     def set_start_point(self):
-        x = self.carrinheiro.get_lat()
-        y = self.carrinheiro.get_lon()
-        z = self.carrinheiro.get_alt()
-        self.start_point = (x, y, z)
+        self.start_point = self.carrinheiro.get_coordinates()
 
     def get_start_point(self):
         return self.start_point
 
     def set_end_point(self):
-        x = self.carrinheiro.get_lat_depot()
-        y = self.carrinheiro.get_lon_depot()
-        z = self.carrinheiro.get_alt_depot()
-        self.end_point = (x, y, z)
+        self.end_point = self.carrinheiro.get_coordinates_depot()
 
     def get_end_point(self):
         return self.end_point
 
     def set_available_ads(self):
         weekday_collection = DateTime.DateTime(self.day_collection).get_weekday_pt()
-        orders = self.carrinheiro.get_orders()
+        orders = self.carrinheiro.get_attended_ads()
         available_ads = []
         for i in orders:
             ads = self.get_ads(i)
@@ -59,13 +53,10 @@ class Path:
         coordinates_ads = []
         for i in self.available_ads:
             ads = self.get_ads(i)
-            lat = ads.get_lat()
-            lon = ads.get_lon()
-            alt = ads.get_alt()
-            coordinates = (lat, lon, alt)
+            coordinates = ads.get_coordinates()
             coordinates_ads.append(coordinates)
         coordinates_ads.insert(0, self.start_point)
-        coordinates_ads.insert(-1, self.end_point)
+        coordinates_ads.insert(len(coordinates_ads), self.end_point)
         self.stop_points = coordinates_ads
         self.n_stop_points = len(self.stop_points)
 
