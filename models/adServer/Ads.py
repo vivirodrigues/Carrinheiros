@@ -1,7 +1,4 @@
-try:
-    from models.adServer import JsonDB
-except:
-    pass
+from models.adServer import JsonDB
 
 
 class Ads:
@@ -31,23 +28,56 @@ class Ads:
         # id of the user who made the ad
         self.user_id = self.json.get("user_id")
 
+    def set_type(self):
+        # the ad can be a material offer or request
+        self.type = self.json.get("type")
+
     def set_material_type(self):
         # String("paper", "metal", "glass", "plastic", etc)
         self.material_type = self.json.get("material_type")
 
     def set_material_subtype(self):
+        ###
+        # based on the type of material, there are different subtypes
+        # example: material_type : paper
+        # material_subtype : String("magazines", "books", "cardboard", "journal", etc)
+        ###
         self.material_subtype = self.json.get("material_subtype")
 
     def set_amount(self):
+        # the amount of materials
         self.amount = self.json.get("amount")
 
-    def set_unity(self):
-        self.unity = self.json.get("unity")
+    def set_measure_unit(self):
+        ###
+        # the unit of measure can be a unit of mass, volume, etc.
+        # String("liters", "milliliters", "kilograms", "grams", "units", etc)
+        ###
+        self.measure_unit = self.json.get("measure_unit")
 
-    def set_type(self):
-        self.type = self.json.get("type")
+    def set_available_days(self):
+        ###
+        # days of the week that the user is available to materials deliver/collect
+        # example: String("Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom") in portuguese
+        ###
+        self.available_days = self.json.get("days_of_the_week")
+
+    def set_user_attending(self):
+        # id of the user who expressed interest in the ad
+        self.user_attending = self.json.get("user_attending")
+
+    def set_status(self):
+        ###
+        # advertisement status
+        # String("done", "in progress", "available")
+        ###
+        self.status = self.json.get("status")
 
     def set_coordinates(self):
+        ###
+        # a list with user instant geographic coordinates
+        # list -> tuple (latitude, longitude, altitude)
+        ###
         self.coordinates = tuple(self.json.get("coordinates"))
 
     def set_lat(self):
@@ -59,24 +89,18 @@ class Ads:
     def set_alt(self):
         self.alt = self.coordinates[2]
 
-    def set_user_attending(self):
-        self.user_attending = self.json.get("user_attending")
-
     def set_weight(self):
         # define
         pass
-
-    def set_available_days(self):
-        self.available_days = self.json.get("days_of_the_week")
-
-    def get_available_days(self):
-        return self.available_days
 
     def get_id(self):
         return self.id
 
     def get_user_id(self):
         return self.user_id
+
+    def get_type(self):
+        return self.type
 
     def get_material_type(self):
         return self.material_type
@@ -87,11 +111,17 @@ class Ads:
     def get_amount(self):
         return self.amount
 
-    def get_unity(self):
-        return self.unity
+    def get_measure_unit(self):
+        return self.measure_unit
 
-    def get_type(self):
-        return self.type
+    def get_available_days(self):
+        return self.available_days
+
+    def get_user_attending(self):
+        return self.user_attending
+
+    def get_status(self):
+        return self.status
 
     def get_coordinates(self):
         return self.coordinates
@@ -105,29 +135,44 @@ class Ads:
     def get_alt(self):
         return self.alt
 
-    def get_user_attending(self):
-        return self.user_attending
-
     def main(self):
+        self.set_id()
+        self.set_type()
+        self.set_user_id()
+        self.set_material_type()
+        self.set_material_subtype()
+        self.set_amount()
+        self.set_measure_unit()
+        self.set_available_days()
+        self.set_user_attending()
+        self.set_status()
         self.set_coordinates()
         self.set_lat()
         self.set_lon()
         self.set_alt()
-        self.set_id()
-        self.set_type()
-        self.set_user_attending()
-        self.set_user_id()
-        self.set_amount()
-        self.set_material_type()
-        self.set_material_subtype()
-        self.set_unity()
-        self.set_available_days()
+
+
+def get_ads(id_ad, directory_json):
+    file_name = get_file_ads(id_ad)
+    file_ad = JsonDB.JsonDB(file_name, directory_json)
+    json_ad = file_ad.get_file_content()
+    ad = Ads(json_ad)
+    return ad
+
+
+def get_file_ads(id_ad):
+    file_name = "Ads" + str(id_ad)
+    return file_name
 
 
 if __name__ == '__main__':
     id_ads = "0001"
-    file = "Ads" + id_ads
-    file_ads = JsonDB.JsonDB(file)
+    directory_file_json = "../DB/"
+    file = get_file_ads(id_ads)
+    file_ads = JsonDB.JsonDB(file, directory_file_json)
     json_ads = file_ads.get_file_content()
     anuncio = Ads(json_ads)
     print("Test with ads:", anuncio.get_lon())
+    ###########################################
+    ads = get_ads(id_ads, directory_file_json)
+    print("Test 2 with ads:", ads.get_lon())

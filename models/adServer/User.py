@@ -1,7 +1,4 @@
-try:
-    from models.adServer import JsonDB
-except:
-    pass
+from models.adServer import JsonDB
 
 
 class User:
@@ -146,10 +143,27 @@ class User:
         self.set_alt_depot()
 
 
+def get_user(user_id, directory_json):
+    file_name = get_file_user(user_id)
+    file_json = JsonDB.JsonDB(file_name, directory_json)
+    json = file_json.get_file_content()
+    user = User(json)
+    return user
+
+
+def get_file_user(user_id):
+    file_name = "User" + str(user_id)
+    return file_name
+
+
 if __name__ == '__main__':
     id_user = "000"
     file = "User" + id_user
-    file_user = JsonDB.JsonDB(file)
+    file_user = JsonDB.JsonDB(file, '../DB/')
     json_user = file_user.get_file_content()
     carrinheiro = User(json_user)
     print("Test with user:", carrinheiro.get_type())
+    #################################################
+    directory_file_json = '../DB/'
+    user_new = get_user(id_user, directory_file_json)
+    print("Test 2", user_new.get_coordinates())
