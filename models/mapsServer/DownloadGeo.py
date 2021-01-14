@@ -1,15 +1,16 @@
-import requests
 import urllib.request
 import zipfile
 
 
 class DownloadGeo:
-    def __init__(self, file_name, directory):
+    # Download GeoTiff zip and unzips the file
+    def __init__(self, file_name, directory_file):
         self.file_name = file_name
-        self.directory = directory
+        self.directory = directory_file
         self.download()
 
     def download(self):
+        # In Brazil, geomorphometric data is on the INPE website (topodata)
         url = "http://www.dsr.inpe.br/topodata/data/geotiff/" + self.file_name
         with urllib.request.urlopen(url) as dl_file:
             with open(self.directory + self.file_name, 'wb') as out_file:

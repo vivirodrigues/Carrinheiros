@@ -2,9 +2,10 @@ from models.mapsServer import DownloadGeo
 
 
 class ScenarioGeo:
-    def __init__(self, dir_geo, coordinates_path):
-        self.dir_geo = dir_geo
-        self.coordinates_list = coordinates_path
+    # reading the GeoTiff file
+    def __init__(self, geo_directory, coordinates_stop_points):
+        self.dir_geo = geo_directory
+        self.coordinates_list = coordinates_stop_points
         self.file_name = ''
         self.scenario_geotiff = ''
         self.main()
@@ -13,15 +14,19 @@ class ScenarioGeo:
         self.file_name = '22S48_ZN'  # create a function to find it name
 
     def set_geotiff(self):
-        # it checks if file exists
+        # it checks if the file exists
         try:
-            print(self.dir_geo + self.file_name)
             with open(self.dir_geo + self.file_name, 'r') as f:
                 # self.scenario_geotiff = f.read()
                 print("File exists")
         except IOError:
+            # if not exists, it downloads the file
             download_file = DownloadGeo.DownloadGeo(self.file_name, self.dir_geo)
             self.set_geotiff()
+
+    def join_geo(self):
+        # it sticks the files according to the coordinates
+        pass
 
     def main(self):
         self.set_name_geo()

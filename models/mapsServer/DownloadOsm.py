@@ -1,14 +1,12 @@
 import requests
-import urllib.request
-import zipfile
 
 
 class DownloadOsm:
-    def __init__(self, coordinates, file_name, directory):
-        self.coordinates_osm = coordinates
+    # Download osm file in Overpass API using xapi_meta for large files
+    def __init__(self, coordinates, file_name, directory_file):
+        self.coordinates_osm = coordinates  # scenario rectangle area
         self.file_name_osm = file_name
-        self.file_name_geotiff = "22S48_ZN"
-        self.directory = directory
+        self.directory = directory_file
         self.download()
 
     def download(self):

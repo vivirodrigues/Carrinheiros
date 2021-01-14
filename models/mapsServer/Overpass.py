@@ -2,6 +2,7 @@ import overpy
 
 
 class Overpass:
+    # it connects with Overpass API based on the input query
     def __init__(self, query):
         self.api = overpy.Overpass()
         self.query = query
@@ -19,4 +20,5 @@ class Overpass:
         self.response = response
 
     def get_response(self):
+        # returns the response from Overpass API based on the input query
         return self.response

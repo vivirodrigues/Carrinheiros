@@ -1,4 +1,4 @@
-from models.adServer import Ads, User, DateTime, JsonDB
+from models.adServer import Advertisement, User, DateTime, JsonDB
 
 
 class Path:
@@ -28,7 +28,7 @@ class Path:
         orders = self.carrinheiro.get_attended_ads()
         available_ads = []
         for i in orders:
-            ads = Ads.get_ads(i, self.directory_file_json)
+            ads = Advertisement.get_ads(i, self.directory_file_json)
             days_collection = ads.get_available_days()
             if weekday_collection in days_collection:
                 available_ads.append(i)
@@ -43,7 +43,7 @@ class Path:
         ###
         coordinates_ads = []
         for i in self.available_ads:
-            ads = Ads.get_ads(i, self.directory_file_json)
+            ads = Advertisement.get_ads(i, self.directory_file_json)
             coordinates = ads.get_coordinates()
             coordinates_ads.append(coordinates)
         coordinates_ads.insert(0, self.start_point)

@@ -1,7 +1,7 @@
 from models.adServer import JsonDB
 
 
-class Ads:
+class Advertisement:
     def __init__(self, json):
         self.json = json
         self.id = ''
@@ -156,7 +156,7 @@ def get_ads(id_ad, directory_json):
     file_name = get_file_ads(id_ad)
     file_ad = JsonDB.JsonDB(file_name, directory_json)
     json_ad = file_ad.get_file_content()
-    ad = Ads(json_ad)
+    ad = Advertisement(json_ad)
     return ad
 
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     file = get_file_ads(id_ads)
     file_ads = JsonDB.JsonDB(file, directory_file_json)
     json_ads = file_ads.get_file_content()
-    anuncio = Ads(json_ads)
+    anuncio = Advertisement(json_ads)
     print("Test with ads:", anuncio.get_lon())
     ###########################################
     ads = get_ads(id_ads, directory_file_json)

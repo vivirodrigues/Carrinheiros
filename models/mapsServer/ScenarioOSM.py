@@ -1,46 +1,56 @@
 from models.mapsServer import Overpass, Coordinates, DownloadOsm, JsonOverpass
+from models.mapsServer.Coordinates import Coordinates
+
+
+def set_iso(search_coordinate):
+    ###
+    # iso = country + '-' + state
+    # example : 'BR-SP'
+    # it is used when you want to download a complete city
+    ###
+    overpass_query = "[out:json];is_in" + str(search_coordinate) + "; out geom qt; "
+    json_osm = JsonOverpass.JsonOverpass(overpass_query)
+    response_json = json_osm.get_elements()
+    iso = ''
+    for i in response_json:
+        tags = i.get("tags")
+        if tags.get("ISO3166-2") is not None:
+            iso = tags.get("ISO3166-2")
+    return iso
+
+
+def set_state_area(search_coordinate, osm_relation):
+    ###
+    # return a state code
+    # it is used when you want to download a complete city
+    # OSM_relation : 3600000000 for relation, 2400000000 for way
+    ###
+    iso = set_iso(search_coordinate)
+    query_state = "relation['ISO3166-2'='" + iso + "']; (._;>;); out ids;"
+    api_overpass = Overpass.Overpass(query_state)
+    result = api_overpass.get_response()
+    id_state_area = result.relations[0].id + osm_relation
+    return id_state_area
 
 
 class ScenarioOsm:
-    def __init__(self, dir_osm, coordinates_path):
+    # reading the osm file
+    def __init__(self, osm_dir, coordinates_stop_points):
+        self.coordinates_osm = Coordinates(coordinates_stop_points).get_coordinates()
+        self.coordinates_list = Coordinates(coordinates_stop_points).get_coordinates_list()
         self.iso = ''
         self.search_coordinate = ()
-        self.coordinates_list = coordinates_path
         self.file_name_osm = 'map.osm'
-        self.dir_osm = dir_osm
+        self.dir_osm = osm_dir
         self.id_state_area = 0.0
-        self.coordinates_osm = ''
         self.scenario_osm = ''
         self.osm_relation = 3600000000
         self.main()
 
-    def set_city(self):
-        overpass_query = "[out:json];is_in" + str(self.search_coordinate) + "; out geom qt; "
-        json_osm = JsonOverpass.JsonFile(overpass_query)
-        response_json = json_osm.get_elements()
-        iso = ''
-        for i in response_json:
-            tags = i.get("tags")
-            if tags.get("ISO3166-2") is not None:
-                iso = tags.get("ISO3166-2")
-        self.iso = iso
-
-    def set_state_area(self):
-        # iso = country + '-' + state : BR-SP
-        # OSM pattern : 3600000000 for relation, 2400000000 for way
-        query_state = "relation['ISO3166-2'='" + self.iso + "']; (._;>;); out ids;"
-        api_overpass = Overpass.Overpass(query_state)
-        result = api_overpass.get_response()
-        self.id_state_area = result.relations[0].id + self.osm_relation
-        print("State area", self.id_state_area)
-
-    def set_coordinates_osm(self):
-        coordinates = Coordinates.Coordinates(self.coordinates_list)
-        self.coordinates_osm = coordinates.get_coordinates()
-
     def set_search_coordinate(self):
-        osm_lat = self.coordinates_list[0][0]
-        osm_lon = self.coordinates_list[0][1]
+        # it is used in queries to search overpass
+        osm_lat = self.coordinates_list[0]
+        osm_lon = self.coordinates_list[0]
         self.search_coordinate = (osm_lat, osm_lon)
 
     def set_osm(self):
@@ -54,9 +64,6 @@ class ScenarioOsm:
 
     def main(self):
         self.set_search_coordinate()
-        self.set_coordinates_osm()
-        # self.set_city()
-        # self.set_state_area()
         self.set_osm()
 
 
