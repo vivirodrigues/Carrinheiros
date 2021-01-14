@@ -8,10 +8,10 @@ Carriers are collectors of recyclable materials that use human propulsion vehicl
 
 The route creation service works from recyclable material advertising systems. The data needed to create the routes are illustrated in the Class Diagram in Figure 1.
 
-<p style="text-align: center;">
-<img src="https://raw.githubusercontent.com/vivirodrigues/Carrinheiros/main/documentation/classDiagram.png">
+<center>
+<img src="https://raw.githubusercontent.com/vivirodrigues/Carrinheiros/main/documentation/classDiagram.png">  
 Figure 1 - class Diagram
-</p>
+</center>
  
 The User class has the attributes described in Figure 1. These data are read through a JSON file, as in the following example:  
 
