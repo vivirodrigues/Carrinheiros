@@ -6,10 +6,10 @@ class Scenario:
     def __init__(self, id_user, date):
         self.id_user = id_user
         self.collection_day = date
-        self.carrinheiro = User.get_user(id_user, self.directory_json)
-        self.path = Path.Path(self.carrinheiro, date, self.directory_json)
         self.directory_json = '../models/DB/'
         self.directory_maps = '../models/maps/'
+        self.carrinheiro = User.get_user(id_user, self.directory_json)
+        self.path = Path.Path(self.carrinheiro, date, self.directory_json)
 
     def main(self):
         # get user stop points

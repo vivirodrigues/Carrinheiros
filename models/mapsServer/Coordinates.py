@@ -41,6 +41,7 @@ class Coordinates:
 
     def set_coordinates(self):
         # it transforms the list of rectangle area in string
+        # min_lon, min_lat, max_lon, max_lat
         self.coordinates_list = [self.min_lon, self.min_lat, self.max_lon, self.max_lat]
         new_coordinates = str(self.coordinates_list[0])
         for i, item in enumerate(self.coordinates_list[1:]):

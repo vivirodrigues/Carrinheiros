@@ -5,13 +5,16 @@ import glob
 import os
 
 
-dirpath = r"../maps/"
-out_fp = r"../maps/out.tif"
+dirpath = r"../models/maps/"
+out_fp = r"../models/maps/out.tif"
 # Make a search criteria to select the DEM DB
 search_criteria = "*.tif"
+tif1 = '25S495ZN.tif'
+tif2 = '26S495ZN.tif'
 q = os.path.join(dirpath, search_criteria)
-print(q)
-dem_fps = glob.glob(q)
+print("q", q)
+# dem_fps = glob.glob(q)
+dem_fps = [dirpath + tif1, dirpath + tif2]
 src_files_to_mosaic = []
 for fp in dem_fps:
     src = rasterio.open(fp)
