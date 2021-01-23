@@ -10,6 +10,7 @@ class DownloadOsm:
         self.download()
 
     def download(self):
+        print(self.coordinates_osm)
         url = "http://overpass.openstreetmap.ru/cgi/xapi_meta?*[bbox={}]".format(self.coordinates_osm)
         r = requests.get(url, allow_redirects=True)
         with open(self.directory + self.file_name_osm, 'w') as fd:

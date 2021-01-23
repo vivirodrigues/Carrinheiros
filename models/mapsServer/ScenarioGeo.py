@@ -30,7 +30,7 @@ class ScenarioGeo:
                 # if not exists, it downloads the file
                 print(self.file_names[i])
                 download_file = DownloadGeo.DownloadGeo(self.file_names[i], self.dir_geo)
-                self.set_geotiff()
+                # self.set_geotiff()
 
     def verify_geo_file_coordinates(self):
         path_dir = str(self.dir_geo) + str(self.file_names[1]) + '.tif'
