@@ -9,6 +9,7 @@ class Coordinates:
         self.limit = 0.02 # margin in the scenario rectangle area
         self.coordinates = ''
         self.coordinates_list = []
+        self.coordinates_dict = {}
         self.min_lat = float('inf')
         self.min_lon = float('inf')
         self.max_lat = float('-inf')

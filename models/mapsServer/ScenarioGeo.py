@@ -4,7 +4,37 @@ from models.mapsServer.Coordinates import Coordinates
 import rasterio
 from rasterio.merge import merge
 from rasterio.plot import show
-import os
+
+
+def get_coordinate_pixel(geotiff, lon, lat):
+    """
+
+    :param geotiff: str
+                    path + file_name of the geotiff
+
+    :param lon:     float
+                    longitude value
+
+    :param lat:     float
+                    latitude value
+
+    :return:        value of lon,lat pixel in geotiff
+    """
+
+    # open geotiff
+    dataset = rasterio.open(geotiff)
+
+    # get pixel of the coordinate
+    py, px = dataset.index(lon, lat)
+
+    # create 1x1px window of the pixel
+    window = rasterio.windows.Window(px - 1//2, py - 1//2, 1, 1)
+
+    # read rgb values of the window
+    clip = dataset.read(window=window)
+
+    # return the value of pixel
+    return clip[0][0][0]
 
 
 class ScenarioGeo:
@@ -16,6 +46,7 @@ class ScenarioGeo:
         self.topodata = Topodata.Topodata(self.coordinates_osm)
         self.file_names = self.topodata.get_file_names()
         self.tif_names = []
+        self.tif_name = ''
         self.n_files = 0
         self.main()
 
@@ -61,6 +92,7 @@ class ScenarioGeo:
     def join_geo(self):
         # it sticks the files according to the coordinates
         out_fp = self.dir_geo + 'out.tif'  # exit file
+        self.tif_name = 'out.tif'
         dem_fps = self.tif_names
         src_files_to_mosaic = []
         for fp in dem_fps:
@@ -85,6 +117,8 @@ class ScenarioGeo:
         self.set_geotiff()
         if self.n_files > 1:
             self.join_geo()
+        else:
+            self.tif_name = self.tif_names[0]
 
 
 if __name__ == "__main__":
@@ -99,3 +133,9 @@ if __name__ == "__main__":
     dir_geo = '../maps/'
     ScenarioGeo(dir_geo, coordinates_1)
     # file_name = '22S48_ZN'
+    ###
+    # Host:
+    # sudo apt-get install gdal-bin
+    # sudo apt-get install libgdal-dev libgdal1h
+    # enviroment:
+    # pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal"
