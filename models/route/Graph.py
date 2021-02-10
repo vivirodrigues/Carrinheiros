@@ -60,7 +60,7 @@ def set_edge_grades(G):
     return G
 
 
-def save_graph_file(G, file_path):
+def save_graph_file(G, file_path='/'):
     """
     Save the graph file
 

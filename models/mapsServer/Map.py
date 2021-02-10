@@ -4,176 +4,452 @@ from models.mapsServer.Overpass import Overpass
 import statistics
 
 
-def string_coordinate(coordinate):
+def _string_coordinate(coordinate):
+    """
+    Private function.
+
+    It changes the type of coordinate data
+    from tuple with float numbers to a string.
+
+
+    :param coordinate:      tuple
+                            (float, float) : lat, lon
+
+    :return:                String
+                            "lat, lon"
+    """
     lat = str(coordinate[0])
     lon = str(coordinate[1])
     return lat + "," + lon
 
 
-def get_id_edge_from_coordinate(coordinate):
-    # get the way of a node
-    geolocator = Nominatim(user_agent="DS")
+def _geolocator(coordinate, name_project):
+    """
+    Private function.
+
+    This function gets the Open Street Map (OSM)
+    information about the input coordinate using
+    geopy.geocoders.Nominatim.
+
+
+    :param coordinate:      String
+                            The string must have the coordinates
+                            Format: (lat, lon)
+                            Example: "(00.00, 00.00)"
+
+    :param name_project     String
+                            The name of the current project
+
+    :return:                geopy.geocoders.Nominatim.geolocator
+                            This object has OSM information
+                            about the input coordinate
+    """
+    # define Nominatim geocoder user
+    geolocator = Nominatim(user_agent=name_project)
+
+    # search for the coordinate information
     location = geolocator.reverse(coordinate)
-    osm_id = location.raw.get('osm_id')
+
+    return location
+
+
+def _osm_type(location):
+    """
+    Private function.
+
+    This function verifies the type of the location.
+    The input could be an Open Street Map (OSM) node
+    or a part of a way, an OSM type of data containing
+    multiples nodes.
+
+
+    :param location         geopy.geocoders.Nominatim.geolocator
+                            This object has OSM information
+                            about the input coordinate
+
+    :return:                String
+                            Open Street Map type
+                            "node" or "way"
+    """
+
+    # get the osm type
+    # (coordinate can correspond to a node or a way)
     osm_type = location.raw.get('osm_type')
-    if osm_type == 'way':
-        return osm_id
-    elif osm_type == 'node':
-        # create an option to make a route until de node directly
-        road = location.raw.get('address').get('road')
-        city_district = location.raw.get('address').get('city_district')
-        city = location.raw.get('address').get('city')
-        country = location.raw.get('address').get('country')
-        search = road + ',' + city_district + ',' + city + ',' + country
-        try:
-            location = geolocator.geocode(search)
-            test = location.raw
-        except:
-            # if the search fail
-            search = road + ',' + city
-            location = geolocator.geocode(search)
-        osm_id = location.raw.get('osm_id')
-        return osm_id
+
+    return osm_type
 
 
-def get_nodes_from_edge(edge_id):
-    # pegar todos os nodes e as respectivas lon, lat de dentro de uma aresta
-    query_state = "way(" + str(edge_id) + "); (._;>;); out qt;"
+def _id_osm(location):
+    """
+    Private function.
+
+    This function gets the location id from the Open Street Map.
+
+
+    :param location         geopy.geocoders.Nominatim.geolocator
+                            This object has OSM information
+                            about the input coordinate
+
+    :return:                int
+                            Open Street Map id
+    """
+
+    osm_id = location.raw.get('osm_id')
+    return osm_id
+
+
+def coordinate_node(id_node):
+    """
+    This function verifies the coordinates
+    of an Open Street Map (OSM) id of node.
+
+    :param id_node:     int
+                        OSM id of the node
+
+    :return:            tuple
+                        The function returns a tuple
+                        with two float values, latitude
+                        and longitude of the OSM node.
+                        (lat, lon)
+    """
+    query_state = "node(" + str(id_node) + "); (._;>;); out qt;"
     api_overpass = Overpass(query_state)
     result = api_overpass.get_response()
+
+    lat = float(result.nodes[0].lat)
+    lon = float(result.nodes[0].lon)
+
+    return lat, lon
+
+def nodes_from_way_osm(osm_id):
+    """
+    This function gets all nodes inside a way of
+    the Open Street Map. The nodes has latitude
+    and longitude.
+
+
+    :param osm_id:      int
+                        Open Street Map id
+
+    :return:            dict
+                        {id_node: (lat, lon)}
+    """
+
+    # the Overpass query must get all nodes from a osm way
+    query_state = "way(" + str(osm_id) + "); (._;>;); out qt;"
+    api_overpass = Overpass(query_state)
+    result = api_overpass.get_response()
+
     nodes = {}
+
+    # in each node of the way, get the lat and lon
     for i in result.nodes:
-        nodes.update([(i.id, (float(i.lon), float(i.lat)))])
+
+        # nodes.update(id_node : (lat, lon))
+        nodes.update([(i.id, (float(i.lat), float(i.lon)))])
+
     return nodes
 
 
-def order(coordinate):
-    lon = coordinate[0]
-    lat = coordinate[1]
-    new_coordinate = (lat, lon)
-    return new_coordinate
+def closest_node_id(coordinate, nodes):
+    """
+    This function gets the closest osm node from
+    the input coordinate using geodesic distance.
 
+    :param coordinate:      tuple
+                            (float, float) : lat, lon
 
-def get_closest_node_id(coordinate, nodes):
+    :param nodes:           dict
+                            {id_node: (lat, lon)}
+
+    :return:                dict
+                            {id_node: (lat, lon)}
+                            osm id and coordinate of
+                            the closest node
+    """
+
     min_distance = float('inf')
-    closest = ''
+    closest = {}
+
     for i in nodes:
-        node_coordinate = order(nodes.get(i))
+
+        # coordinate of the current node
+        node_coordinate = nodes.get(i)
+
+        # distance between coordinate and the current node in meters
         distance = geopy.distance.geodesic(coordinate, node_coordinate).m
         if distance < min_distance:
-            closest = i
+            closest.update([(i, node_coordinate)])
             min_distance = distance
+
     return closest
 
 
-def _between_nodes_rascunho(coordinate, nodes, closest):
-    first_node = closest
-    list_keys = list(nodes.keys())
-    index_closest = list_keys.index(first_node)
-    new_nodes = {}
-    if index_closest > 0:
-        key_before = list_keys[index_closest - 1]
-        new_nodes.update([(key_before, nodes.get(key_before))])
-    if index_closest < len(nodes) - 1:
-        key_after = list_keys[index_closest + 1]
-        new_nodes.update([(key_after, nodes.get(key_after))])
-    second_node = get_closest_node_id(coordinate, new_nodes)
-    # between_nodes = ()
-    if first_node == second_node:
-        between_nodes = tuple(first_node)
-    else:
-        between_nodes = (first_node, second_node)
-    return between_nodes
-    # closest_node_inside_edge = get_closest_node_id(coordinate, nodes)
-    # nodes_between = _between_nodes(coordinate, nodes, closest_node_inside_edge)
-
-
-def _is_horizontal_way(list_nodes_values):
+def is_horizontal_way(list_nodes_values):
     """
+    This function verifies if the way has more variance
+    horizontally (longitude) or vertically (latitude).
 
-    :param list_nodes_values: list
-    :return: boolean
+    :param list_nodes_values:       list
+                                    it contains tuples with lat and lon
+                                    [(lat, lon)]
+
+    :return: boolean                True if is a horizontal way, false
+                                    if is not.
     """
+    # create a list with all nodes latitudes
     lat = []
     for i in list_nodes_values:
         lat.append(i[1])
+
+    # create a list with all nodes longitudes
     lon = []
     for i in list_nodes_values:
         lon.append(i[0])
+
+    # verify the variance in latitude list
     variance_lat = statistics.variance(lat)
+
+    # verify the variance in longitude list
     variance_lon = statistics.variance(lon)
+
+    # if longitude has more variance, it is
+    # a horizontal way
     if variance_lon > variance_lat:
         return True
     else:
         return False
 
 
-def _quadrants(coordinate, list_nodes_values, list_nodes_keys):
+def quadrants(coordinate, nodes):
 
-    coordinate = order(coordinate)
+    """
+    Separate the nodes adjacent to the input coordinate
+    into quadrants:
 
-    left = {}
-    right = {}
-    bottom = {}
-    top = {}
+    :param coordinate:          tuple
+                                (float, float) : lat, lon
 
-    for i in range(0, len(list_nodes_values)):
-        if list_nodes_values[i][0] <= coordinate[0]:
-            left.update([(list_nodes_keys[i], list_nodes_values[i])])
-        else:
-            right.update([(list_nodes_keys[i], list_nodes_values[i])])
-        if list_nodes_values[i][1] <= coordinate[1]:
-            bottom.update([(list_nodes_keys[i], list_nodes_values[i])])
-        else:
-            top.update([(list_nodes_keys[i], list_nodes_values[i])])
+    :param nodes:               dict
+                                {id_node: (lat, lon)}
 
-    return left, right, bottom, top
-
-
-def _between_nodes(coordinate, nodes):
+    :return:                    list, list, list, list
+                                left, right, bottom, top
+    """
 
     list_nodes_values = list(nodes.values())
     list_nodes_keys = list(nodes.keys())
 
-    left, right, bottom, top = _quadrants(coordinate, list_nodes_values, list_nodes_keys)
+    left = {}
+    right = {}
+    top = {}
+    bottom = {}
 
-    # if the longitudinal variation is greater than the latitudinal variation
-    is_horizontal_way = _is_horizontal_way(list_nodes_values)
+    for i in range(0, len(list_nodes_values)):
 
-    if is_horizontal_way:
+        # if latitude of the current node <= latitude of the input coordinate
+        if list_nodes_values[i][0] <= coordinate[0]:
+
+            # bottom nodes dict = {id of the node: (lat, lon)}
+            bottom.update([(list_nodes_keys[i], list_nodes_values[i])])
+        else:
+
+            # top nodes dict = {id of the node: (lat, lon)}
+            top.update([(list_nodes_keys[i], list_nodes_values[i])])
+
+        # if longitude of the current node <= longitude of the input coordinate
+        if list_nodes_values[i][1] <= coordinate[1]:
+
+            # left nodes dict = {id of the node: (lat, lon)}
+            left.update([(list_nodes_keys[i], list_nodes_values[i])])
+
+        else:
+
+            # right nodes dict = {id of the node: (lat, lon)}
+            right.update([(list_nodes_keys[i], list_nodes_values[i])])
+
+    return left, right, bottom, top
+
+
+def _adjacent_nodes(coordinate, nodes):
+
+    """
+
+    :param coordinate:      tuple
+                            (float, float) : lat, lon
+
+    :param nodes:           dict
+                            {id_node: (lat, lon)}
+
+    :return:                tuple
+                            (int, int)
+                            Open Street Map ids of closest
+                            adjacent nodes (id, id)
+    """
+
+    left, right, bottom, top = quadrants(coordinate, nodes)
+
+    between_nodes = {}
+
+    # True if the longitudinal variation is greater than the latitudinal variation
+    horizontal_way = is_horizontal_way(list(nodes.values()))
+
+    if horizontal_way:
+
+        # if there is nodes in both sides (left and right)
         if len(left) > 0 and len(right) > 0:
-            first_closest = get_closest_node_id(coordinate, left)
-            second_closest = get_closest_node_id(coordinate, right)
+
+            # closest node in the left side of coordinate
+            first_closest = closest_node_id(coordinate, left)
+
+            # closest node in the right side of coordinate
+            second_closest = closest_node_id(coordinate, right)
+
         else:
+
             # if there is not node in one of the sides
-            print("Error")
-            first_closest = get_closest_node_id(coordinate, top)
-            second_closest = get_closest_node_id(coordinate, bottom)
+            first_closest, second_closest = _nodes_around(coordinate)
+
+    # if is not a horizontal way
     else:
+
+        # if there is nodes on both sides (bottom and top)
         if len(top) > 0 and len(bottom) > 0:
-            first_closest = get_closest_node_id(coordinate, top)
-            second_closest = get_closest_node_id(coordinate, bottom)
+
+            # closest node on the top side of coordinate
+            first_closest = closest_node_id(coordinate, top)
+
+            # closest node on the bottom side of coordinate
+            second_closest = closest_node_id(coordinate, bottom)
         else:
-            # if there is not node in one of the sides
-            print("Error")
-            first_closest = get_closest_node_id(coordinate, left)
-            second_closest = get_closest_node_id(coordinate, right)
-    between_nodes = (first_closest, second_closest)
+
+            # if there is not node on one of the sides
+            first_closest, second_closest = _nodes_around(coordinate)
+
+    between_nodes.update(first_closest)
+    between_nodes.update(second_closest)
+
     return between_nodes
 
-def between_nodes(coordinate_float):
-    coordinate = string_coordinate(coordinate_float)
-    id_edge = get_id_edge_from_coordinate(str(coordinate))
-    nodes = get_nodes_from_edge(id_edge)
-    nodes_between = _between_nodes(coordinate_float, nodes)
-    return nodes_between
+
+def _nodes_around(coordinate):
+    """
+    This function is used when is not possible to get
+    adjacent nodes on the same osm "way" of the input
+    coordinate.
+
+    :param coordinate:      tuple
+                            (float, float) : lat, lon
+
+    :return:                int, int
+                            Open Street Map ids of closest
+                            adjacent nodes around the input
+                            coordinate(id, id)
+    """
+
+    coord = _string_coordinate(coordinate)
+    flag = True
+    limit = 0
+    around_nodes = {}
+
+    while flag:
+
+        # meters around the coordinate to search nodes
+        limit += 50
+
+        # the query search nodes around the coordinate within the limit
+        query_state = "node(around:" + str(limit) + ", " + coord + "); (._;>;); out;"
+        api_overpass = Overpass(query_state)
+        result = api_overpass.get_response()
+
+        # if there is more than one node around the coordinate
+        if len(result.nodes) > 1:
+            flag = False
+
+    for i in result.nodes:
+        # update the dict with around nodes
+        # around nodes dict = {id of the node: (lat, lon)}
+        around_nodes.update([(float(i.id), (float(i.lat), float(i.lon)))])
+
+    # get the first closest node from the coordinate
+    first_closest = closest_node_id(coordinate, around_nodes)
+
+    # remove the first closest node of the dict with all nodes
+    around_nodes.pop(first_closest)
+
+    # get the second closest node from the coordinate
+    second_closest = closest_node_id(coordinate, around_nodes)
+
+    return first_closest, second_closest
+
+
+def adjacent_nodes(coordinate):
+    """
+
+    If the input coordinate is inside a Open Street Map
+    (OSM) way and is not a node, this function finds the
+    adjacent nodes of the input coordinate. If the input
+    coordinate is a node, it returns the id of the node.
+
+    :param coordinate:      tuple
+                                (float, float) : lat, lon
+
+    :return:                tuple/int
+
+                            It returns a tuple (int, int)
+                            with the id of adjacent nodes
+                            if the input coordinate is inside
+                            a OSM way.
+
+                            It returns a int if the input
+                            coordinate is a OSM node. The
+                            int output corresponds the OSM id
+                            of the node.
+
+    """
+    # string of the input coordinate
+    coordinate_str = _string_coordinate(coordinate)
+
+    # gets the Open Street Map (OSM)
+    # information about the input coordinate
+    location = _geolocator(coordinate_str, 'DS')
+
+    # verifies the type of the location
+    type_osm = _osm_type(location)
+
+    # verifies the OSM id of the location
+    id_osm = _id_osm(location)
+
+    # if the type of location is a OSM way
+    if type_osm == 'way':
+
+        # get all nodes of the OSM way
+        nodes = nodes_from_way_osm(id_osm)
+
+        # get the adjacent nodes of the input coordinate
+        nodes_between = _adjacent_nodes(coordinate, nodes)
+
+        # returns a tuple with the ids of the adjacent nodes
+        return nodes_between
+
+    # if the type of location is a OSM node
+    elif type_osm == 'node':
+
+        node_osm = {id_osm: (float(location.raw.get('lat')), float(location.raw.get('lon')))}
+
+        # returns the id of the OSM node
+        return node_osm
+
+    else:
+        print("Error: only Open Street Map \'way\' and \'nodes\' are supported.")
 
 
 if __name__ == '__main__':
     coordinate = (-22.816008, -47.075614)
-    #coordinate = string_coordinate(coordinate)
-    id_edge = get_id_edge_from_coordinate(string_coordinate(coordinate))
-    nodes = get_nodes_from_edge(id_edge)
-    closest_node_inside_edge = get_closest_node_id(coordinate, nodes)
-    nodes_between = _between_nodes(coordinate, nodes)
+    location = _geolocator(_string_coordinate(coordinate), 'Carri')
+    type_osm = _osm_type(location)
+    id_osm = _id_osm(location)
+    nodes = nodes_from_way_osm(id_osm)
+    closest_node_inside_edge = closest_node_id(coordinate, nodes)
+    nodes_between = _adjacent_nodes(coordinate, nodes)
     print(nodes_between)
