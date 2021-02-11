@@ -1,16 +1,16 @@
-from models.adServer import User, Path, JsonDB, DateTime
-from models.mapsServer import ScenarioOSM, ScenarioGeo, Coordinates
+from classes.adServer import User, Path, JsonDB, DateTime
+from classes.mapsServer import ScenarioOSM, ScenarioGeo, Coordinates
 import osmnx as ox
 
-from models.route import Graph
+from classes.route import Graph
 
 
 class Scenario:
     def __init__(self, id_user, date):
         self.id_user = id_user
         self.collection_day = date
-        self.directory_json = '../models/DB/'
-        self.directory_maps = '../models/maps/'
+        self.directory_json = 'classes/DB/'
+        self.directory_maps = 'classes/maps/'
         self.carrinheiro = User.get_user(id_user, self.directory_json)
         self.path = Path.Path(self.carrinheiro, date, self.directory_json)
 
@@ -27,16 +27,16 @@ class Scenario:
         geo_scenario = ScenarioGeo.ScenarioGeo(self.directory_maps, stop_points)
         geotiff_name = geo_scenario.tif_name
 
-        max_lon = Coordinates.Coordinates(stop_points).max_lon
-        min_lon = Coordinates.Coordinates(stop_points).min_lon
-        max_lat = Coordinates.Coordinates(stop_points).max_lat
-        min_lat = Coordinates.Coordinates(stop_points).min_lat
+        max_lon = Coordinates.max_longitude(stop_points)
+        min_lon = Coordinates.min_longitude(stop_points)
+        max_lat = Coordinates.max_latitude(stop_points)
+        min_lat = Coordinates.min_latitude(stop_points)
 
         # graph
         G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
         G = Graph.set_node_elevation(G, geotiff_name)
         G = Graph.set_edge_grades(G)
-        Graph.save_graph_file(G, '../models/maps/map.graphml')
+        Graph.save_graph_file(G, '../classes/maps/map.graphml')
         # Graph.plot_graph(G)
 
 

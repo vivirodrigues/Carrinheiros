@@ -1,6 +1,6 @@
 import geopy.distance
 from geopy.geocoders import Nominatim
-from models.mapsServer.Overpass import Overpass
+from rascunhos.Overpass import Overpass
 import statistics
 
 

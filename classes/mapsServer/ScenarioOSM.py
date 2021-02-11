@@ -1,5 +1,4 @@
-from models.mapsServer import Overpass, Coordinates, DownloadOsm, JsonOverpass
-from models.mapsServer.Coordinates import Coordinates
+from classes.mapsServer import DownloadOsm, Overpass, Coordinates
 
 
 def set_iso(search_coordinate):
@@ -9,10 +8,9 @@ def set_iso(search_coordinate):
     # it is used when you want to download a complete city
     ###
     overpass_query = "[out:json];is_in" + str(search_coordinate) + "; out geom qt; "
-    json_osm = JsonOverpass.JsonOverpass(overpass_query)
-    response_json = json_osm.get_elements()
+    elements_osm = Overpass.elements_json_overpass(overpass_query)
     iso = ''
-    for i in response_json:
+    for i in elements_osm:
         tags = i.get("tags")
         if tags.get("ISO3166-2") is not None:
             iso = tags.get("ISO3166-2")
@@ -27,17 +25,16 @@ def set_state_area(search_coordinate, osm_relation):
     ###
     iso = set_iso(search_coordinate)
     query_state = "relation['ISO3166-2'='" + iso + "']; (._;>;); out ids;"
-    api_overpass = Overpass.Overpass(query_state)
-    result = api_overpass.get_response()
-    id_state_area = result.relations[0].id + osm_relation
+    result_overpy = Overpass.overpy_response(query_state)
+    id_state_area = result_overpy.relations[0].id + osm_relation
     return id_state_area
 
 
 class ScenarioOsm:
     # reading the osm file
     def __init__(self, osm_dir, coordinates_stop_points):
-        self.coordinates_osm = Coordinates(coordinates_stop_points).get_coordinates()
-        self.coordinates_list = Coordinates(coordinates_stop_points).get_coordinates_list()
+        self.coordinates_list = Coordinates.coordinates_list_bbox(coordinates_stop_points)
+        self.coordinates_osm = Coordinates.coordinates_string(self.coordinates_list)
         self.iso = ''
         self.search_coordinate = ()
         self.file_name_osm = 'map.osm'

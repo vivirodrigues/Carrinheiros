@@ -1,4 +1,4 @@
-from models.adServer import Advertisement, User, DateTime, JsonDB
+from classes.adServer import Advertisement, User, DateTime, JsonDB
 
 
 class Path:

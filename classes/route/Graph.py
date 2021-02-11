@@ -2,7 +2,7 @@ import osmnx as ox
 import pandas as pd
 import networkx as nx
 import inspect
-from models.mapsServer import ScenarioGeo
+from classes.mapsServer import ScenarioGeo
 
 
 def set_node_elevation(G, geotiff):

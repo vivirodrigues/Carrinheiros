@@ -1,6 +1,6 @@
-from models.mapsServer import DownloadGeo, Topodata
+from classes.mapsServer import DownloadGeo, Topodata
 from osgeo import gdal
-from models.mapsServer.Coordinates import Coordinates
+from classes.mapsServer import Coordinates
 import rasterio
 from rasterio.merge import merge
 from rasterio.plot import show
@@ -41,10 +41,9 @@ class ScenarioGeo:
     # reading the GeoTiff file
     def __init__(self, geo_directory, coordinates_stop_points):
         self.dir_geo = geo_directory
-        self.coordinates_list = coordinates_stop_points
-        self.coordinates_osm = Coordinates(coordinates_stop_points).get_coordinates_list()
-        self.topodata = Topodata.Topodata(self.coordinates_osm)
-        self.file_names = self.topodata.get_file_names()
+        self.coordinates_osm = Coordinates.coordinates_list_bbox(coordinates_stop_points)
+        self.file_names = Topodata.file_names_topodata(self.coordinates_osm)
+        # self.file_names = self.topodata.get_file_names()
         self.tif_names = []
         self.tif_name = ''
         self.n_files = 0

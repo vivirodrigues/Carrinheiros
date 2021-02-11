@@ -1,16 +1,18 @@
-from models.mapsServer import Map
+from classes.mapsServer import Map
 import Graph
 import osmnx as ox
 
 
-def nodes_collect_points(collect_points):
+def add_collect_points(collect_points):
 
-    aux = 1
+    id_node_collect_point = 1000000000
 
     nodes_collect_points = []
 
     for i in collect_points:
-        aux += 1
+
+        id_node_collect_point += 1
+
         # get the adjacent nodes of the coordinate
         nodes_adjacent = Map.adjacent_nodes(i)
 
@@ -23,15 +25,21 @@ def nodes_collect_points(collect_points):
         # if nodes_adjacent is a tuple, it must to create a node
         # between adjacent nodes
         elif len(nodes_adjacent) > 1:
+
+            # id
             keys = list(nodes_adjacent.keys())
-            values = list(nodes_adjacent.values())
-            print("Add node: ", values[0][1], values[0][0])
-            # create the node
-            # G.add_node(aux, x=i[1], y=i[0])
-            # create the edges
-            nodes_collect_points.append(aux)
+
+            # create a node with collect point coordinates
+            G.add_node(id_node_collect_point, x=i[1], y=i[0])
+            print("Add node: ", i[1], i[0])
+
+            # create edges to adjacent nodes
+            G.add_edges_from([(id_node_collect_point, keys[0]), (id_node_collect_point, keys[1])])
+            print("Add edges:", id_node_collect_point, keys[0], "and", id_node_collect_point, keys[1])
+
+            nodes_collect_points.append(id_node_collect_point)
         else:
-            print("Error: only int or tuple are supported.")
+            print("Error: tuple are supported.")
 
     print(nodes_collect_points)
     return G
@@ -42,6 +50,7 @@ if __name__ == '__main__':
     stop_points = [(-22.816008, -47.075614), (-22.816639, -47.074891),
                    (-22.817423, -47.082436), (-22.820244, -47.085422),
                    (-22.823953, -47.087718), (-22.816008, -47.075614)]
-    Graph.save_graph_file(G, 'test1.graphml')
-    G = nodes_collect_points(stop_points)
+    Graph.plot_graph(G)
+    G = add_collect_points(stop_points)
+    Graph.plot_graph(G)
     Graph.save_graph_file(G, 'test.graphml')

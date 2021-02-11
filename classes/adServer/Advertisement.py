@@ -1,4 +1,4 @@
-from models.adServer import JsonDB
+from classes.adServer import JsonDB
 
 
 class Advertisement:

@@ -1,5 +1,5 @@
-from models.route.Graph import _weight
-from models.route import Graph
+from classes.route.Graph import _weight
+from classes.route import Graph
 import networkx as nx
 import osmnx as ox
 
