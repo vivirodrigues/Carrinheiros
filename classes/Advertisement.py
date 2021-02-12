@@ -1,4 +1,4 @@
-from classes.adServer import JsonDB
+from general import Json
 
 
 class Advertisement:
@@ -154,8 +154,7 @@ class Advertisement:
 
 def get_ads(id_ad, directory_json):
     file_name = get_file_ads(id_ad)
-    file_ad = JsonDB.JsonDB(file_name, directory_json)
-    json_ad = file_ad.get_file_content()
+    json_ad = Json.json_content(directory_json, file_name)
     ad = Advertisement(json_ad)
     return ad
 
@@ -167,10 +166,9 @@ def get_file_ads(id_ad):
 
 if __name__ == '__main__':
     id_ads = "0001"
-    directory_file_json = "../DB/"
+    directory_file_json = "../data/DB/"
     file = get_file_ads(id_ads)
-    file_ads = JsonDB.JsonDB(file, directory_file_json)
-    json_ads = file_ads.get_file_content()
+    json_ads = Json.json_content(directory_file_json, file)
     anuncio = Advertisement(json_ads)
     print("Test with ads:", anuncio.get_lon())
     ###########################################

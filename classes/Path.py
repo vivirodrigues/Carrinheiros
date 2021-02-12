@@ -1,4 +1,5 @@
-from classes.adServer import Advertisement, User, DateTime, JsonDB
+from general import Json, DateTime
+from classes import Advertisement, User
 
 
 class Path:
@@ -24,7 +25,7 @@ class Path:
 
     def set_available_ads(self):
         # announcements available for collection day
-        weekday_collection = DateTime.DateTime(self.day_collection).get_weekday_pt()
+        weekday_collection = DateTime.date_time_pt(self.day_collection)
         orders = self.carrinheiro.get_attended_ads()
         available_ads = []
         for i in orders:
@@ -71,9 +72,8 @@ class Path:
 
 if __name__ == "__main__":
     collection_day = '25 01 2021'
-    dir_DB = '../DB/'
-    file_user = JsonDB.JsonDB('User000', dir_DB)
-    json_user = file_user.get_file_content()
+    dir_DB = '../data/DB/'
+    json_user = Json.json_content(dir_DB, 'User000')
     carrinheiro = User.User(json_user)
     path = Path(carrinheiro, collection_day, dir_DB)
     print("Test", path.get_stop_points())

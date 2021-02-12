@@ -1,4 +1,4 @@
-from classes.adServer import JsonDB
+from general import Json
 
 
 class User:
@@ -145,8 +145,7 @@ class User:
 
 def get_user(user_id, directory_json):
     file_name = get_file_user(user_id)
-    file_json = JsonDB.JsonDB(file_name, directory_json)
-    json = file_json.get_file_content()
+    json = Json.json_content(directory_json, file_name)
     user = User(json)
     return user
 
@@ -159,11 +158,10 @@ def get_file_user(user_id):
 if __name__ == '__main__':
     id_user = "000"
     file = "User" + id_user
-    file_user = JsonDB.JsonDB(file, '../DB/')
-    json_user = file_user.get_file_content()
+    json_user = Json.json_content('../data/DB/', file)
     carrinheiro = User(json_user)
     print("Test with user:", carrinheiro.get_type())
     #################################################
-    directory_file_json = '../DB/'
+    directory_file_json = '../data/DB/'
     user_new = get_user(id_user, directory_file_json)
     print("Test 2", user_new.get_coordinates())

@@ -1,4 +1,4 @@
-from classes.mapsServer import Map
+from geography import Map
 import Graph
 import osmnx as ox
 

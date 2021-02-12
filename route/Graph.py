@@ -2,10 +2,11 @@ import osmnx as ox
 import pandas as pd
 import networkx as nx
 import inspect
-from classes.mapsServer import ScenarioGeo
+from geography import GeoTiff
+from Constants import *
 
 
-def set_node_elevation(G, geotiff):
+def set_node_elevation(G, directory, name_file_geotiff):
     """
     Add `elevation` attribute to each node in meters.
     Uses elevation data by geotiff file by default
@@ -37,7 +38,7 @@ def set_node_elevation(G, geotiff):
     # get elevation value from geotiff file,
     # based on x,y coordinate
     for i in range(0, len(x)):
-        elevation.append(ScenarioGeo.get_coordinate_pixel(geotiff, longitudes[i], latitudes[i]))
+        elevation.append(GeoTiff.coordinate_pixel(directory + name_file_geotiff, longitudes[i], latitudes[i]))
 
     # create a pandas series with the id of the node and corresponding elevation values
     pd_elevation = pd.Series(elevation, index=ids)
@@ -60,16 +61,34 @@ def set_edge_grades(G):
     return G
 
 
-def save_graph_file(G, file_path='/'):
+def save_graph_file(G, directory='/', name_file='map'):
     """
     Save the graph file
 
     :param G:           NetworkX graph
                         input graph
-    :param file_path:   str
-                        path + file_name to save
+
+    :param directory:   String
+                        path to save the file
+
+    :param name_file    String
+                        Name of the file
     """
-    ox.io.save_graphml(G, filepath=file_path)
+    name_len = len(name_file)
+
+    # the length of extension
+    if name_len > 7:
+        file_extension = name_file[name_len - 7] + name_file[name_len - 6] + \
+                         name_file[name_len - 5] + name_file[name_len - 4] + \
+                         name_file[name_len - 3] + name_file[name_len - 2] + \
+                         name_file[name_len - 1]
+
+        if file_extension != '.graphml':
+            name_file += '.graphml'
+    else:
+        name_file += '.graphml'
+
+    ox.io.save_graphml(G, filepath=directory + name_file)
 
 
 def plot_graph(G):
@@ -136,8 +155,8 @@ def _weight(G, weight):
 
 if __name__ == '__main__':
     G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
-    G = set_node_elevation(G, '../maps/22S48_ZN.tif')
+    G = set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
     G = set_edge_grades(G)
     nodes = list(G.nodes)
     function_weight = _weight(G, impedance)
-    save_graph_file(G, '../maps/map.graphml')
+    save_graph_file(G, MAPS_DIRECTORY, 'map.graphml')
