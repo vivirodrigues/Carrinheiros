@@ -1,9 +1,10 @@
 from geography import Map
 import Graph
 import osmnx as ox
+from Constants import *
 
 
-def add_collect_points(collect_points):
+def add_collect_points(G, collect_points):
 
     id_node_collect_point = 1000000000
 
@@ -50,7 +51,8 @@ if __name__ == '__main__':
     stop_points = [(-22.816008, -47.075614), (-22.816639, -47.074891),
                    (-22.817423, -47.082436), (-22.820244, -47.085422),
                    (-22.823953, -47.087718), (-22.816008, -47.075614)]
+    fig1, ax1 = ox.plot_graph(G, node_size=5, edge_color='#333333', bgcolor='k')
+    G = add_collect_points(G, stop_points)
+    G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
+    Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test.graphml')
     Graph.plot_graph(G)
-    G = add_collect_points(stop_points)
-    Graph.plot_graph(G)
-    Graph.save_graph_file(G, 'test.graphml')

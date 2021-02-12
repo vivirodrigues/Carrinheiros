@@ -61,7 +61,7 @@ def set_edge_grades(G):
     return G
 
 
-def save_graph_file(G, directory='/', name_file='map'):
+def save_graph_file(G, directory='', name_file='map'):
     """
     Save the graph file
 
@@ -159,4 +159,4 @@ if __name__ == '__main__':
     G = set_edge_grades(G)
     nodes = list(G.nodes)
     function_weight = _weight(G, impedance)
-    save_graph_file(G, MAPS_DIRECTORY, 'map.graphml')
+    save_graph_file(G, '../' + MAPS_DIRECTORY, 'map.graphml')

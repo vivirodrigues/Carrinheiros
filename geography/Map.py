@@ -121,6 +121,7 @@ def coordinate_node(id_node):
 
     return lat, lon
 
+
 def nodes_from_way_osm(osm_id):
     """
     This function gets all nodes inside a way of
@@ -305,6 +306,12 @@ def _adjacent_nodes(coordinate, nodes):
             # closest node in the right side of coordinate
             second_closest = closest_node_id(coordinate, right)
 
+        # if there is not nodes in left and/or right
+        # and there is nodes in top and bottom sides
+        elif len(left) > 0 and len(right) > 0:
+            first_closest = closest_node_id(coordinate, top)
+            second_closest = closest_node_id(coordinate, bottom)
+
         else:
 
             # if there is not node in one of the sides
@@ -321,6 +328,13 @@ def _adjacent_nodes(coordinate, nodes):
 
             # closest node on the bottom side of coordinate
             second_closest = closest_node_id(coordinate, bottom)
+
+        # if there is not nodes in top and/or bottom
+        # and there is nodes in left and right sides
+        elif len(left) > 0 and len(right) > 0:
+            first_closest = closest_node_id(coordinate, top)
+            second_closest = closest_node_id(coordinate, bottom)
+
         else:
 
             # if there is not node on one of the sides
@@ -392,7 +406,7 @@ def adjacent_nodes(coordinate):
     coordinate is a node, it returns the id of the node.
 
     :param coordinate:      tuple
-                                (float, float) : lat, lon
+                            (float, float) : lat, lon
 
     :return:                tuple/int
 
@@ -445,6 +459,7 @@ def adjacent_nodes(coordinate):
 
 
 if __name__ == '__main__':
+
     coordinate = (-22.816008, -47.075614)
     location = _geolocator(_string_coordinate(coordinate), 'Carri')
     type_osm = _osm_type(location)

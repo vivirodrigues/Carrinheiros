@@ -13,6 +13,7 @@ def define_iso(search_coordinate):
                                 The tuple must have the lat, lon
                                 of a geographic point. It can be
                                 done by _search_coordinate function.
+                                Order of coordinates: (lat, lon)
 
     :return:                    String
                                 country + '-' + state
@@ -39,10 +40,17 @@ def id_state_area(search_coordinate, osm_relation):
 
     :param search_coordinate:   tuple
                                 (lat, lon)
-    :param osm_relation:
-    :return:
+
+    :param osm_relation:        int
+                                3600000000 or 2400000000
+
+    :return:                    int
+                                The Open Street Map id of the
+                                area which contains the input
+                                search coordinate
     """
 
+    # Country - State. Ex: 'BR-SP'
     iso = define_iso(search_coordinate)
     query_state = "relation['ISO3166-2'='" + iso + "']; (._;>;); out ids;"
     result_overpy = Overpass.overpy_response(query_state)
@@ -51,14 +59,42 @@ def id_state_area(search_coordinate, osm_relation):
 
 
 def _search_coordinate(coordinates_list):
+    """
+    This function gets a coordinate from a list to be used
+    on searches of Open Street Map API.
+
+    :param coordinates_list:    list
+                                the list has float coordinate values
+                                in this order:
+                                [min_lon, min_lat, max_lon, max_lat]
+
+    :return:                    tuple
+                                The tuple must have the coordinates
+                                Format: (lat, lon)
+                                (lat, lon)
+    """
     # it is used in queries to search overpass
-    osm_lat = coordinates_list[0]
+    osm_lat = coordinates_list[1]
     osm_lon = coordinates_list[0]
     search_coordinate = (osm_lat, osm_lon)
     return search_coordinate
 
 
 def _osm(coordinates_osm, directory, file_name):
+    """
+    This function checks if a Open Street Map '.osm' file
+    exists in a directory. If it not exists, this function
+    downloads the file.
+
+    :param coordinates_osm:         list
+                                    the list has float coordinate values
+                                    in this order:
+                                    [min_lon, min_lat, max_lon, max_lat]
+
+    :param directory:               String
+
+    :param file_name:               String
+    """
     # it checks if file exists
     try:
         with open(directory + file_name, 'r') as f:
@@ -70,9 +106,29 @@ def _osm(coordinates_osm, directory, file_name):
         _osm(coordinates_osm, file_name, directory)
 
 
-def file_osm(directory, file_name, coordinates_stop_points):
+def file_osm(directory, file_name, coordinates_points):
+    """
+    This function gets a list with tuples corresponding a geographic
+    points. Each tuple has the coordinates (lat, lon) of the point.
+    Then, it creates a bounding box which contain all coordinates
+    inside. Besides, it checks if exists a Open Street Map '.osm' file
+    in a directory. If it not exists, this function
+    downloads the file.
 
-    coordinates_list = Coordinates.coordinates_list_bbox(coordinates_stop_points)
+    :param directory:                       String
+
+    :param file_name:                       String
+
+    :param coordinates_points:              list
+                                            the list contains tuples.
+                                            Each tuple has the latitude
+                                            and the longitude corresponding
+                                            to the geographic point.
+                                            [(lat, lon)]
+    :return:
+    """
+
+    coordinates_list = Coordinates.coordinates_list_bbox(coordinates_points)
     coordinates_osm = Coordinates.coordinates_string(coordinates_list)
     _osm(coordinates_osm, directory, file_name)
 
@@ -83,3 +139,8 @@ if __name__ == "__main__":
                         (-22.816008, -47.075614), (-22.823953, -47.087718)]
     dir_osm = '../data/maps/'
     file_osm(dir_osm, 'map.osm', coordinates_path)
+
+    coordinates_list = Coordinates.coordinates_list_bbox(coordinates_path)
+    search_coord = _search_coordinate(coordinates_list)
+    id_area = id_state_area(search_coord, 3600000000)
+    print(id_area)
