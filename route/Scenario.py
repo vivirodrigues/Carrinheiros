@@ -17,8 +17,12 @@ def add_collect_points(G, collect_points):
         # get the adjacent nodes of the coordinate
         nodes_adjacent = Map.adjacent_nodes(i)
 
+        # it do not considers invalid coordinates
+        if nodes_adjacent is None:
+            pass
+
         # if len nodes_adjacent is 1, the collect point already is a node
-        if len(nodes_adjacent) == 1:
+        elif len(nodes_adjacent) == 1:
             id_node = list(nodes_adjacent.keys())[0]
             print(id_node, " already is a node")
             nodes_collect_points.append(id_node)
@@ -50,7 +54,7 @@ if __name__ == '__main__':
     G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
     stop_points = [(-22.816008, -47.075614), (-22.816639, -47.074891),
                    (-22.817423, -47.082436), (-22.820244, -47.085422),
-                   (-22.823953, -47.087718), (-22.816008, -47.075614)]
+                   (-22.823953, -47.087718), (-24.992554, -47.069115)]# (-22.816008, -47.075614)]
     fig1, ax1 = ox.plot_graph(G, node_size=5, edge_color='#333333', bgcolor='k')
     G = add_collect_points(G, stop_points)
     G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')

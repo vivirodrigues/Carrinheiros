@@ -32,6 +32,7 @@ class Scenario:
         min_lon = Coordinates.min_longitude(stop_points)
         max_lat = Coordinates.max_latitude(stop_points)
         min_lat = Coordinates.min_latitude(stop_points)
+        print(max_lat, min_lat, max_lon, min_lon)
 
         # graph
         G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')

@@ -49,6 +49,9 @@ def set_node_elevation(G, directory, name_file_geotiff):
     return G
 
 
+#def add_surface(G):
+
+
 def set_edge_grades(G):
     """
 
@@ -159,4 +162,4 @@ if __name__ == '__main__':
     G = set_edge_grades(G)
     nodes = list(G.nodes)
     function_weight = _weight(G, impedance)
-    save_graph_file(G, '../' + MAPS_DIRECTORY, 'map.graphml')
+    save_graph_file(G, '../' + MAPS_DIRECTORY, 'map')
