@@ -1,8 +1,9 @@
 import geopy.distance
 from geopy.geocoders import Nominatim
-from rascunhos.Overpass import Overpass
+from geography import Overpass
 import statistics
 import sys
+import time
 
 
 def _string_coordinate(coordinate):
@@ -48,16 +49,21 @@ def _geolocator(coordinate, name_project):
     # define Nominatim geocoder user
     geolocator = Nominatim(user_agent=name_project)
 
-    # search for the coordinate information
-    location = geolocator.reverse(coordinate)
-
-    try:
-        if location.raw:
-            return location
-    except AttributeError:
-        print("Error: The coordinates do not correspond to a valid location. It is necessary to be close to a road.")
-        # sys.exit()
-        return None
+    while True:
+        try:
+            # search for the coordinate information
+            location = geolocator.reverse(coordinate)
+            if location.raw:
+                return location
+        except AttributeError:
+            print("Error: The coordinates do not correspond to a valid location. It is necessary to be close to a road.")
+            # sys.exit()
+            return None
+        except:
+            # print("Another exception")
+            time.sleep(30)
+            continue
+        break
 
 
 def _osm_type(location):
@@ -128,11 +134,10 @@ def coordinate_node(id_node):
                         (lat, lon)
     """
     query_state = "node(" + str(id_node) + "); (._;>;); out qt;"
-    api_overpass = Overpass(query_state)
-    result = api_overpass.get_response()
+    result_overpass = Overpass.overpy_response(query_state)
 
-    lat = float(result.nodes[0].lat)
-    lon = float(result.nodes[0].lon)
+    lat = float(result_overpass.nodes[0].lat)
+    lon = float(result_overpass.nodes[0].lon)
 
     return lat, lon
 
@@ -153,8 +158,7 @@ def nodes_from_way_osm(osm_id):
 
     # the Overpass query must get all nodes from a osm way
     query_state = "way(" + str(osm_id) + "); (._;>;); out qt;"
-    api_overpass = Overpass(query_state)
-    result = api_overpass.get_response()
+    result = Overpass.overpy_response(query_state)
 
     nodes = {}
 
@@ -358,8 +362,6 @@ def _adjacent_nodes(coordinate, nodes):
     between_nodes.update(first_closest)
     between_nodes.update(second_closest)
 
-    print("First:", first_closest)
-    print("Second:", second_closest)
     return between_nodes
 
 
@@ -382,6 +384,7 @@ def _nodes_around(coordinate):
     flag = True
     limit = 0
     around_nodes = {}
+    result_overpass = ''
 
     while flag:
 
@@ -390,14 +393,13 @@ def _nodes_around(coordinate):
 
         # the query search nodes around the coordinate within the limit
         query_state = "node(around:" + str(limit) + ", " + coord + "); (._;>;); out;"
-        api_overpass = Overpass(query_state)
-        result = api_overpass.get_response()
+        result_overpass = Overpass.overpy_response(query_state)
 
         # if there is more than one node around the coordinate
-        if len(result.nodes) > 1:
+        if len(result_overpass.nodes) > 1:
             flag = False
 
-    for i in result.nodes:
+    for i in result_overpass.nodes:
         # update the dict with around nodes
         # around nodes dict = {id of the node: (lat, lon)}
         around_nodes.update([(float(i.id), (float(i.lat), float(i.lon)))])
@@ -410,7 +412,7 @@ def _nodes_around(coordinate):
 
     # get the second closest node from the coordinate
     second_closest = closest_node_id(coordinate, around_nodes)
-    print("a")
+    print("around")
     return first_closest, second_closest
 
 
@@ -425,17 +427,26 @@ def adjacent_nodes(coordinate):
     :param coordinate:      tuple
                             (float, float) : lat, lon
 
-    :return:                tuple/int
+    :return:                dict, geopy.location.Location
 
-                            It returns a tuple (int, int)
-                            with the id of adjacent nodes
-                            if the input coordinate is inside
-                            a OSM way.
+                            If the input coordinate is a
+                            way:
+                            It returns a dict with the id
+                            of adjacent nodes as key, and
+                            a tuple with the coordinate of
+                            the node.
 
+                            If the input coordinate is a
+                            node:
                             It returns a int if the input
                             coordinate is a OSM node. The
                             int output corresponds the OSM id
                             of the node.
+
+                            Also returns an object
+                            geopy.location corresponding to
+                            the input coordinate geolocation
+                            data.
 
     """
     # string of the input coordinate
@@ -446,7 +457,6 @@ def adjacent_nodes(coordinate):
     location = _geolocator(coordinate_str, 'DS')
 
     if location is not None:
-        print(location)
 
         # verifies the type of the location
         type_osm = _osm_type(location)
@@ -464,26 +474,52 @@ def adjacent_nodes(coordinate):
             nodes_between = _adjacent_nodes(coordinate, nodes)
 
             # returns a tuple with the ids of the adjacent nodes
-            return nodes_between
+            return nodes_between, location
 
-        # if the type of location is a OSM node
         elif type_osm == 'node':
 
             node_osm = {id_osm: (float(location.raw.get('lat')), float(location.raw.get('lon')))}
 
             # returns the id of the OSM node
-            return node_osm
+            return node_osm, location
+
+        # if the type of location is a OSM node
+        elif type_osm == 'node':
+
+            road = location.raw.get('address').get('road')
+            city = location.raw.get('address').get('city')
+            search = road + ',' + city
+            geolocator = Nominatim(user_agent='DS')
+            location = geolocator.geocode(search)
+            osm_id = location.raw.get('osm_id')
+
+            # get all nodes of the OSM way
+            nodes = nodes_from_way_osm(osm_id)
+
+            # get the adjacent nodes of the input coordinate
+            nodes_between = _adjacent_nodes(coordinate, nodes)
+
+            # returns a tuple with the ids of the adjacent nodes
+            return nodes_between
 
         else:
             print("Error: only Open Street Map \'way\' and \'nodes\' are supported.")
 
     else:
-        return None
+        return None, None
+
 
 if __name__ == '__main__':
-    # coordinate = (-22.816008, -47.075614)
-    coordinate = (-24.992554, -47.069115)
-    location = _geolocator(_string_coordinate(coordinate), 'Carri')
+    coordinate = (-22.816008, -47.075614)
+    # coordinate = (-24.992554, -47.069115)
+    for i in range(2):
+        location = _geolocator(_string_coordinate(coordinate), 'Carri')
+        type_osm = _osm_type(location)
+        id_osm = _id_osm(location)
+        nodes = nodes_from_way_osm(id_osm)
+        closest_node_inside_edge = closest_node_id(coordinate, nodes)
+        nodes_between = _adjacent_nodes(coordinate, nodes)
+    """
     if location is not None:
         type_osm = _osm_type(location)
         id_osm = _id_osm(location)
@@ -491,3 +527,4 @@ if __name__ == '__main__':
         closest_node_inside_edge = closest_node_id(coordinate, nodes)
         nodes_between = _adjacent_nodes(coordinate, nodes)
         print(nodes_between)
+    """

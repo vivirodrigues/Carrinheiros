@@ -81,11 +81,10 @@ def save_graph_file(G, directory='', name_file='map'):
 
     # the length of extension
     if name_len > 7:
-        file_extension = name_file[name_len - 7] + name_file[name_len - 6] + \
-                         name_file[name_len - 5] + name_file[name_len - 4] + \
-                         name_file[name_len - 3] + name_file[name_len - 2] + \
-                         name_file[name_len - 1]
-
+        file_extension = name_file[name_len - 8] + name_file[name_len - 7] +\
+                         name_file[name_len - 6] + name_file[name_len - 5] +\
+                         name_file[name_len - 4] + name_file[name_len - 3] +\
+                         name_file[name_len - 2] + name_file[name_len - 1]
         if file_extension != '.graphml':
             name_file += '.graphml'
     else:

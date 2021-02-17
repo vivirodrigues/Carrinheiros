@@ -15,8 +15,12 @@ class Overpass:
         return self.query
 
     def set_response(self):
-        response = self.api.query(self.query)
+        try:
+            response = self.api.query(self.query)
+        except overpy.exception.OverpassGatewayTimeout:
+            print("Error timeout")
         self.response = response
+
 
     def get_response(self):
         # returns the response from Overpass API based on the input query
