@@ -15,6 +15,7 @@ def elements_json_overpass(overpass_query):
 
     :return:                    list
     """
+    data = {}
     overpass_url = "http://overpass-api.de/api/interpreter"
     while True:
         try:
@@ -40,15 +41,15 @@ def overpy_response(overpy_query):
     :return:                    Overpy object
     """
     api = overpy.Overpass()
+    response = {}
     while True:
         try:
             response = api.query(overpy_query)
-            return response
         except:
             time.sleep(30)
             continue
         break
-
+    return response
 
 if __name__ == "__main__":
     for i in range(100):

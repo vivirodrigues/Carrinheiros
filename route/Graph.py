@@ -52,7 +52,7 @@ def set_node_elevation(G, directory, name_file_geotiff):
 #def add_surface(G):
 
 
-def set_edge_grades(G):
+def edge_grades(G):
     """
 
     :param G:   NetworkX graph
@@ -158,7 +158,7 @@ def _weight(G, weight):
 if __name__ == '__main__':
     G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
     G = set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
-    G = set_edge_grades(G)
+    G = edge_grades(G)
     nodes = list(G.nodes)
     function_weight = _weight(G, impedance)
     save_graph_file(G, '../' + MAPS_DIRECTORY, 'map')

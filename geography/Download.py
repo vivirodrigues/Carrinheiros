@@ -3,7 +3,7 @@ import zipfile
 import requests
 
 
-def download_geotiff(file_name, directory='../'):
+def download_geotiff(directory, file_name):
     """
     This function downloads the GeoTiff file according to file_name.
     The file name should be defined in Topodata.py
@@ -33,8 +33,14 @@ def download_geotiff(file_name, directory='../'):
         zip_ref.extractall(directory)
 
 
-def download_osm(coordinates_osm, file_name, directory='../'):
+def download_osm(coordinates_osm, directory, file_name):
     """
+    :param coordinates_osm  Sting
+                            bbox=left,bottom,right,top
+                            left: minLon
+                            bottom: minLat
+                            right: maxLon
+                            top: maxLat
 
     :param file_name:       String
                             Name of the file that must be downloaded.
@@ -62,8 +68,8 @@ if __name__ == "__main__":
     coordinates_osm = str(-47.246313) + "," + str(-23.0612161) + "," + str(-47.239999) + "," + str(-23.0609999)
     name_file = "map.osm"
     directory = '../geography/'
-    download_osm(coordinates_osm, name_file, directory)
+    download_osm(coordinates_osm, directory, name_file)
 
     name_file = "22S48_ZN"
     directory = '../geography/'
-    download_geotiff(name_file, directory)
+    download_geotiff(directory, name_file)

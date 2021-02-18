@@ -15,10 +15,8 @@ class User:
         self.coordinates_depot = ()
         self.lat = ''
         self.lon = ''
-        self.alt = ''
         self.lat_depot = ''
         self.lon_depot = ''
-        self.alt_depot = ''
         self.main()
 
     def set_id(self):
@@ -55,14 +53,14 @@ class User:
     def set_coordinates(self):
         ###
         # a list with user instant geographic coordinates
-        # list -> tuple (latitude, longitude, altitude)
+        # list -> tuple (latitude, longitude)
         ###
         self.coordinates = tuple(self.json.get("coordinates"))
 
     def set_coordinates_depot(self):
         ###
         # a list with waste depot geographic coordinates
-        # list -> tuple (latitude, longitude, altitude)
+        # list -> tuple (latitude, longitude)
         ###
         self.coordinates_depot = tuple(self.json.get("coordinates_depot"))
 
@@ -72,17 +70,11 @@ class User:
     def set_lon(self):
         self.lon = self.json.get("longitude")
 
-    def set_alt(self):
-        self.alt = self.json.get("altitude")
-
     def set_lat_depot(self):
         self.lat_depot = self.json.get("latitude_depot")
 
     def set_lon_depot(self):
         self.lon_depot = self.json.get("longitude_depot")
-
-    def set_alt_depot(self):
-        self.alt_depot = self.json.get("altitude_depot")
 
     def get_id(self):
         return self.id
@@ -114,17 +106,11 @@ class User:
     def get_lon(self):
         return self.lon
 
-    def get_alt(self):
-        return self.alt
-
     def get_lat_depot(self):
         return self.lat_depot
 
     def get_lon_depot(self):
         return self.lon_depot
-
-    def get_alt_depot(self):
-        return self.alt_depot
 
     def main(self):
         self.set_id()
@@ -137,10 +123,8 @@ class User:
         self.set_coordinates_depot()
         self.set_lat()
         self.set_lon()
-        self.set_alt()
         self.set_lat_depot()
         self.set_lon_depot()
-        self.set_alt_depot()
 
 
 def get_user(user_id, directory_json):

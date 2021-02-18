@@ -102,8 +102,8 @@ def _osm(coordinates_osm, directory, file_name):
             print("file exists")
     except IOError:
         print(directory + file_name)
-        download_file = Download.download_osm(coordinates_osm, file_name, directory)
-        _osm(coordinates_osm, file_name, directory)
+        download_file = Download.download_osm(coordinates_osm, directory, file_name)
+        _osm(coordinates_osm, directory, file_name)
 
 
 def file_osm(directory, file_name, coordinates_points):
@@ -130,6 +130,7 @@ def file_osm(directory, file_name, coordinates_points):
 
     coordinates_list = Coordinates.coordinates_list_bbox(coordinates_points)
     coordinates_osm = Coordinates.coordinates_string(coordinates_list)
+    print(coordinates_osm)
     _osm(coordinates_osm, directory, file_name)
 
 

@@ -17,7 +17,6 @@ class Advertisement:
         self.coordinates = ()
         self.lat = ''
         self.lon = ''
-        self.alt = ''
         self.main()
 
     def set_id(self):
@@ -76,7 +75,7 @@ class Advertisement:
     def set_coordinates(self):
         ###
         # a list with user instant geographic coordinates
-        # list -> tuple (latitude, longitude, altitude)
+        # list -> tuple (latitude, longitude)
         ###
         self.coordinates = tuple(self.json.get("coordinates"))
 
@@ -85,9 +84,6 @@ class Advertisement:
 
     def set_lon(self):
         self.lon = self.coordinates[1]
-
-    def set_alt(self):
-        self.alt = self.coordinates[2]
 
     def set_weight(self):
         # define
@@ -132,9 +128,6 @@ class Advertisement:
     def get_lon(self):
         return self.lon
 
-    def get_alt(self):
-        return self.alt
-
     def main(self):
         self.set_id()
         self.set_type()
@@ -149,7 +142,6 @@ class Advertisement:
         self.set_coordinates()
         self.set_lat()
         self.set_lon()
-        self.set_alt()
 
 
 def get_ads(id_ad, directory_json):

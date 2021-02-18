@@ -87,13 +87,14 @@ def _geotiff(directory, file_names):
 
             # it checks if the file exists
             with open(directory + file_names[i], 'r') as f:
+
                 # self.scenario_geotiff = f.read()
                 print(file_names[i], " file exists")
         except IOError:
 
             # if it does not exist, it downloads the file
             print(file_names[i])
-            download_file = Download.download_geotiff(file_names[i], directory)
+            download_file = Download.download_geotiff(directory, file_names[i])
 
 
 def join_geo(directory, geo_directory_and_file_names, name_mosaic_file='out.tif'):

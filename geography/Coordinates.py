@@ -157,13 +157,26 @@ def coordinates_list_bbox(coordinates, margin_value_coordinate=0.02):
     return coordinates_list
 
 
+def create_osmnx(coordinates):
+    margin_value_coordinate = 0.02
+    max_lon = max_longitude(coordinates) + margin_value_coordinate
+    min_lon = min_longitude(coordinates) - margin_value_coordinate
+    max_lat = max_latitude(coordinates) + margin_value_coordinate
+    min_lat = min_latitude(coordinates) - margin_value_coordinate
+
+    osmnx_list = [max_lat, min_lat, max_lon, min_lon]
+
+    return osmnx_list[0], osmnx_list[1], osmnx_list[2], osmnx_list[3]
+
+
 if __name__ == "__main__":
-    coordinates = ([(-22.816008, -47.075614, 606.0),
-                    (-22.816639, -47.074891, 602.0),
-                    (-22.818317, -47.083415, 602.0),
-                    (-22.820244, -47.085422, 602.0),
-                    (-22.823953, -47.087718, 602.0),
-                    (-22.816008, -47.075614, 606.0)])
+    coordinates = ([(-22.816008, -47.075614),
+                    (-22.816639, -47.074891),
+                    (-22.818317, -47.083415),
+                    (-22.820244, -47.085422),
+                    (-22.823953, -47.087718),
+                    (-22.816008, -47.075614)])
+    # -47.087718,-22.823953,-47.074891,-22.816008
     # -47.087718,-22.823953,-47.074891,-22.816008
     # -47.246313,-23.0612161,-47.239999,-23.0609999
     test = coordinates_list_bbox(coordinates)

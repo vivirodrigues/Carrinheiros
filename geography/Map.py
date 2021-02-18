@@ -327,7 +327,8 @@ def _adjacent_nodes(coordinate, nodes):
 
         # if there is not nodes in left and/or right
         # and there is nodes in top and bottom sides
-        elif len(left) > 0 and len(right) > 0:
+        elif len(top) > 0 and len(bottom) > 0:
+
             first_closest = closest_node_id(coordinate, top)
             second_closest = closest_node_id(coordinate, bottom)
 
@@ -351,9 +352,9 @@ def _adjacent_nodes(coordinate, nodes):
         # if there is not nodes in top and/or bottom
         # and there is nodes in left and right sides
         elif len(left) > 0 and len(right) > 0:
-            first_closest = closest_node_id(coordinate, top)
-            second_closest = closest_node_id(coordinate, bottom)
 
+            first_closest = closest_node_id(coordinate, left)
+            second_closest = closest_node_id(coordinate, right)
         else:
 
             # if there is not node on one of the sides
@@ -412,7 +413,6 @@ def _nodes_around(coordinate):
 
     # get the second closest node from the coordinate
     second_closest = closest_node_id(coordinate, around_nodes)
-    print("around")
     return first_closest, second_closest
 
 
@@ -476,13 +476,6 @@ def adjacent_nodes(coordinate):
             # returns a tuple with the ids of the adjacent nodes
             return nodes_between, location
 
-        elif type_osm == 'node':
-
-            node_osm = {id_osm: (float(location.raw.get('lat')), float(location.raw.get('lon')))}
-
-            # returns the id of the OSM node
-            return node_osm, location
-
         # if the type of location is a OSM node
         elif type_osm == 'node':
 
@@ -490,8 +483,8 @@ def adjacent_nodes(coordinate):
             city = location.raw.get('address').get('city')
             search = road + ',' + city
             geolocator = Nominatim(user_agent='DS')
-            location = geolocator.geocode(search)
-            osm_id = location.raw.get('osm_id')
+            location_1 = geolocator.geocode(search)
+            osm_id = location_1.raw.get('osm_id')
 
             # get all nodes of the OSM way
             nodes = nodes_from_way_osm(osm_id)
@@ -500,7 +493,14 @@ def adjacent_nodes(coordinate):
             nodes_between = _adjacent_nodes(coordinate, nodes)
 
             # returns a tuple with the ids of the adjacent nodes
-            return nodes_between
+            return nodes_between, location_1
+
+        elif type_osm == 'node':
+
+            node_osm = {id_osm: (float(location.raw.get('lat')), float(location.raw.get('lon')))}
+
+            # returns the id of the OSM node
+            return node_osm, location
 
         else:
             print("Error: only Open Street Map \'way\' and \'nodes\' are supported.")
@@ -510,15 +510,16 @@ def adjacent_nodes(coordinate):
 
 
 if __name__ == '__main__':
-    coordinate = (-22.816008, -47.075614)
+    coordinate = (-22.82504, -47.0773)
     # coordinate = (-24.992554, -47.069115)
-    for i in range(2):
-        location = _geolocator(_string_coordinate(coordinate), 'Carri')
-        type_osm = _osm_type(location)
-        id_osm = _id_osm(location)
-        nodes = nodes_from_way_osm(id_osm)
-        closest_node_inside_edge = closest_node_id(coordinate, nodes)
-        nodes_between = _adjacent_nodes(coordinate, nodes)
+    # for i in range(2):
+    location = _geolocator(_string_coordinate(coordinate), 'Carri')
+    type_osm = _osm_type(location)
+    id_osm = _id_osm(location)
+    nodes = nodes_from_way_osm(id_osm)
+    closest_node_inside_edge = closest_node_id(coordinate, nodes)
+    nodes_between = _adjacent_nodes(coordinate, nodes)
+    print(nodes_between)
     """
     if location is not None:
         type_osm = _osm_type(location)
