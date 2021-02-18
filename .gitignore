@@ -131,3 +131,5 @@ dmypy.json
 
 maps/
 DB/
+cache/
+rascunhos/
