@@ -155,6 +155,25 @@ def _weight(G, weight):
     return lambda u, v, data: data.get(weight, 1)
 
 
+def displacement(G):
+    name = inspect.currentframe().f_code.co_name
+    all_items = G.succ
+    coord_x = nx.get_node_attributes(G, "x")
+    coord_y = nx.get_node_attributes(G, "y")
+    for u, v, k, data in G.edges(keys=True, data=True):
+        node_1 = all_items.get(u)
+        node_2 = all_items.get(v)
+        coord_x_1 = coord_x.get(node_1)
+        coord_y_1 = coord_x.get(node_1)
+        #name, data[name] = value
+
+
+def motriz_force(G, id_edge, vehicle_mass, angle_inclination):
+    force_px = vehicle_mass * constants.g * math.sin(angle_inclination)
+    # force = (vehicle_mass * accel) + force_px
+    # work = force *
+
+
 if __name__ == '__main__':
     G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
     G = set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
