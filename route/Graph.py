@@ -155,23 +155,57 @@ def _weight(G, weight):
     return lambda u, v, data: data.get(weight, 1)
 
 
-def displacement(G):
+def hypotenuse(G):
     name = inspect.currentframe().f_code.co_name
-    all_items = G.succ
     coord_x = nx.get_node_attributes(G, "x")
     coord_y = nx.get_node_attributes(G, "y")
+    coord_z = nx.get_node_attributes(G, "elevation")
     for u, v, k, data in G.edges(keys=True, data=True):
-        node_1 = all_items.get(u)
-        node_2 = all_items.get(v)
-        coord_x_1 = coord_x.get(node_1)
-        coord_y_1 = coord_x.get(node_1)
-        #name, data[name] = value
+        coord_x_1 = coord_x.get(u)
+        coord_y_1 = coord_y.get(u)
+        coord_z_1 = coord_z.get(u)
+        coord_1 = (coord_x_1, coord_y_1)
+        coord_x_2 = coord_x.get(v)
+        coord_y_2 = coord_y.get(v)
+        coord_z_2 = coord_z.get(v)
+        coord_2 = (coord_x_2, coord_y_2)
+        b = hs.haversine(coord_1, coord_2, unit=Unit.METERS)
+        c = coord_z_2 - coord_z_1
+        a = ((b ** 2) + (c ** 2)) ** (1/2)
+        ########################
+        data[name] = str(a)
 
 
-def motriz_force(G, id_edge, vehicle_mass, angle_inclination):
-    force_px = vehicle_mass * constants.g * math.sin(angle_inclination)
-    # force = (vehicle_mass * accel) + force_px
-    # work = force *
+def _work(coefficient_of_friction, vehicle_mass, angle_inclination, displacement):
+    # vehicle_mass in kg
+    displacement = float(displacement)
+    normal = vehicle_mass * constants.g
+    #print("normal", normal)
+    friction_force = coefficient_of_friction * normal
+    #print("friction_force", friction_force)
+    px = vehicle_mass * constants.g * math.sin(abs(angle_inclination))
+    #print("px", px)
+    #print("angle", angle_inclination)
+
+    if angle_inclination == 0:
+        return friction_force * displacement
+    elif angle_inclination > 0:
+        force = friction_force + px
+        return force * displacement
+    elif angle_inclination < 0:
+        # if Friction > px the vehicle is stopped
+        # else, vehicle is in movement
+        # (it needs a force to maintain a constant velocity)
+        force = friction_force - px
+        return force * displacement
+
+
+def work(G, friction, vehicle_mass):
+    function_name = inspect.currentframe().f_code.co_name
+    hypotenuse(G)
+    for u, v, k, data in G.edges(keys=True, data=True):
+        data[function_name] = _work(friction, vehicle_mass, data['grade'], data['hypotenuse'])
+    return lambda u, v, d: min(attr.get(function_name, 1) for attr in d.values())
 
 
 if __name__ == '__main__':
