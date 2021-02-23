@@ -175,36 +175,76 @@ def hypotenuse(G):
         ########################
         data[name] = str(a)
 
+def define_surface(file_osm):
 
-def _work(coefficient_of_friction, vehicle_mass, angle_inclination, displacement):
+    le = len(file_osm)
+    if file_osm[le-4] + file_osm[le-3] + file_osm[le-2] + file_osm[le-1] != '.osm':
+        file_osm += '.osm'
+
+    # get the surface of an edge
+    x = xml.dom.minidom.parse(file_osm)
+    osm = x.documentElement
+    all_items = []
+    child = [i for i in osm.childNodes if i.nodeType == x.ELEMENT_NODE]
+    surface = ''
+
+    for i in child:
+        if i.nodeName == "way":
+            way = [cont for cont in i.childNodes if cont.nodeType == x.ELEMENT_NODE]
+            nd = []
+            for tags in way:
+                if tags.nodeName == 'nd':
+                    nd.append(tags.getAttribute('ref'))
+                if tags.getAttribute('k') == 'surface':
+                    surface = tags.getAttribute('v')
+            if len(surface) > 1:
+                all_items.append((nd, surface))
+    print(all_items)
+    return all_items
+
+
+def _work(surface_floor, vehicle_mass, angle_inclination, displacement):
+
     # vehicle_mass in kg
+
+    rolling_coefficients = {"paved": 0.01, "asphalt": 0.01, "concrete": 0.01,
+                            "concrete:lanes": 0.01, "concrete:plates": 0.015,
+                            "paving_stones": 0.02, "sett": 0.02, "unhewn_cobblestone": 0.032,
+                            "cobblestone" :0.032, "metal":0.01, "stepping_stones":0.4,
+                            "unpaved":0.06, "compacted":0.06, "fine_gravel": 0.06,
+                            "gravel": 0.08, "rock": 0.08, "pebblestone": 0.08,
+                            "ground": 0.1, "dirt":0.2, "earth": 0.2, "grass": 0.05,
+                            "grass_paver": 0.1, "snow":0.2, "woodchips": 0.05,
+                            "sand":0.05, "mud":0.05}
+
+    rolling_coefficient = rolling_coefficients.get(surface_floor)
+    air_density = 1.2  # km / m³
+    aerodynamic_coefficient = 1  # flat surface
+    frontal_vehicle_area = 1  # m²
+    speed = 0.83  # m/s = 3 km/h
+    if rolling_coefficient is None:
+        rolling_coefficient = 0.01 * (1 + (0.001 * speed))
+
     displacement = float(displacement)
-    normal = vehicle_mass * constants.g
-    #print("normal", normal)
-    friction_force = coefficient_of_friction * normal
-    #print("friction_force", friction_force)
+    normal = vehicle_mass * constants.g * math.cos(abs(angle_inclination))
+    rolling_resistance = rolling_coefficient * normal
+    aerodynamic_force = (1 / 2) * air_density * aerodynamic_coefficient \
+                        * frontal_vehicle_area * (speed ** 2)
     px = vehicle_mass * constants.g * math.sin(abs(angle_inclination))
-    #print("px", px)
-    #print("angle", angle_inclination)
 
-    if angle_inclination == 0:
-        return friction_force * displacement
-    elif angle_inclination > 0:
-        force = friction_force + px
-        return force * displacement
-    elif angle_inclination < 0:
-        # if Friction > px the vehicle is stopped
-        # else, vehicle is in movement
-        # (it needs a force to maintain a constant velocity)
-        force = friction_force - px
-        return force * displacement
+    # force to maintain a constant velocity
+    force = aerodynamic_force + px + rolling_resistance
+
+    resultant_work = force * displacement
+
+    return resultant_work
 
 
-def work(G, friction, vehicle_mass):
+def work(G, floor_type, vehicle_mass):
     function_name = inspect.currentframe().f_code.co_name
     hypotenuse(G)
     for u, v, k, data in G.edges(keys=True, data=True):
-        data[function_name] = _work(friction, vehicle_mass, data['grade'], data['hypotenuse'])
+        data[function_name] = _work(floor_type, vehicle_mass, data['grade'], data['hypotenuse'])
     return lambda u, v, d: min(attr.get(function_name, 1) for attr in d.values())
 
 
@@ -213,5 +253,6 @@ if __name__ == '__main__':
     G = set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
     G = edge_grades(G)
     nodes = list(G.nodes)
-    function_weight = _weight(G, impedance)
-    save_graph_file(G, '../' + MAPS_DIRECTORY, 'map')
+    # work_f = work(G, 0.5, 10)
+    # save_graph_file(G, '../' + MAPS_DIRECTORY, 'map1')
+    define_surface('../'+ MAPS_DIRECTORY + FILE_NAME_OSM)
