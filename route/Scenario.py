@@ -76,15 +76,22 @@ def add_collect_points(G, collect_points):
                 else:
                     first_id = keys[1]
                     second_id = keys[0]
+                
+                try:
+                    highway = G.edges[first_id, second_id, 0]['highway']
+                except:
+                    highway = G.edges[second_id, first_id, 0]['highway']
+                if highway is None:
+                    highway = 'residential'
 
                 # create the edge of the first adjacent node
                 # to the closest node inside the way
-                G.add_edge(id_new_node + 1, first_id, length=len_first)
+                G.add_edge(id_new_node + 1, first_id, length=len_first, highway=highway)
                 print("Add edge to closest node", id_new_node + 1, first_id)
 
                 # create the edge of the second adjacent node
                 # to the closest node inside the way
-                G.add_edge(id_new_node + 1, second_id, length=len_second)
+                G.add_edge(id_new_node + 1, second_id, length=len_second, highway=highway)
                 print("Add edge to closest node", id_new_node + 1, second_id)
 
                 # removes the edge connecting the two adjacent nodes
@@ -96,7 +103,7 @@ def add_collect_points(G, collect_points):
                     G.remove_edge(second_id, first_id)
 
                 len_edge = calculate_distance(i, nearest_node)
-                G.add_edge(id_new_node, id_new_node + 1, length=len_edge)
+                G.add_edge(id_new_node, id_new_node + 1, length=len_edge, highway='footway')
                 print("Add edge of the closest to node", id_new_node + 1, id_new_node)
 
                 nodes_collect_points.append(id_new_node)
@@ -128,7 +135,7 @@ def _add_node(G, tuple_coordinates, id_node):
 
 def cut(line, distance):
     # Cuts a line in two at a distance from its starting point
-    if distance <= 0.000 or distance >= line.length:
+    if distance <= 0.0 or distance >= line.length:
         return [LineString(line)]
     coords = list(line.coords)
     for i, p in enumerate(coords):
@@ -153,7 +160,7 @@ if __name__ == '__main__':
                    (-22.824376, -47.070952), (-22.82503, -47.07410),
                    (-22.82504, -47.07730), (-24.992554, -47.069115)]# (-22.816008, -47.075614)]
     fig1, ax1 = ox.plot_graph(G, node_size=5, edge_color='#333333', bgcolor='k')
-    # Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test1')
+    Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test1')
     # G = add_collect_points(G, stop_points)
     # G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
     # G = Graph.edge_grades(G)
