@@ -30,11 +30,7 @@ class Carrinheiros:
 
         # graph
         G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
-        G = Scenario.add_collect_points(G, stop_points)
-        G = Graph.set_node_elevation(G, MAPS_DIRECTORY, geotiff_name)
-        Graph.save_graph_file(G, MAPS_DIRECTORY, GRAPH_NAME)
-        G = Graph.edge_grades(G)
-        Graph.plot_graph(G)
+        G = Graph.configure_graph(G, geotiff_name, stop_points)
 
 
 if __name__ == '__main__':
@@ -42,5 +38,3 @@ if __name__ == '__main__':
     date = "25 01 2021"
     scenario = Carrinheiros(id_user1, date)
     scenario.main()
-
-
