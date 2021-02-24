@@ -4,6 +4,13 @@ import networkx as nx
 import inspect
 from geography import GeoTiff
 from Constants import *
+import math
+from scipy import constants
+import haversine as hs
+from haversine import Unit
+from route import Scenario
+import xml.dom.minidom
+from collections import Counter
 
 
 def set_node_elevation(G, directory, name_file_geotiff):
@@ -49,7 +56,7 @@ def set_node_elevation(G, directory, name_file_geotiff):
     return G
 
 
-#def add_surface(G):
+# def add_surface(G):
 
 
 def edge_grades(G):
@@ -81,9 +88,9 @@ def save_graph_file(G, directory='', name_file='map'):
 
     # the length of extension
     if name_len > 7:
-        file_extension = name_file[name_len - 8] + name_file[name_len - 7] +\
-                         name_file[name_len - 6] + name_file[name_len - 5] +\
-                         name_file[name_len - 4] + name_file[name_len - 3] +\
+        file_extension = name_file[name_len - 8] + name_file[name_len - 7] + \
+                         name_file[name_len - 6] + name_file[name_len - 5] + \
+                         name_file[name_len - 4] + name_file[name_len - 3] + \
                          name_file[name_len - 2] + name_file[name_len - 1]
         if file_extension != '.graphml':
             name_file += '.graphml'
@@ -104,28 +111,7 @@ def plot_graph(G):
     fig1, ax1 = ox.plot_graph(G, node_color=nc, node_size=5, edge_color='#333333', bgcolor='k')
 
 
-# define some edge impedance function here
-def impedance(length, grade):
-    penalty = grade ** 2
-    name = inspect.currentframe().f_code.co_name
-    return name, length * penalty
 
-
-def update_weight(G, function):
-    """
-    Update edge weight.
-
-    :param G:           NetworkX graph.
-                        input graph
-
-    :param function:    A function to update edge weight
-
-    :return:            function
-                        it returns a function that verifies an edge weight
-    """
-    for u, v, k, data in G.edges(keys=True, data=True):
-        name, data[name] = function(data['length'], data['grade'])
-    return lambda u, v, d: min(attr.get(name, 1) for attr in d.values())
 
 
 def _weight(G, weight):
@@ -156,6 +142,9 @@ def _weight(G, weight):
 
 
 def hypotenuse(G):
+
+    # if elevation = 0, do nothing!! gets the length
+
     name = inspect.currentframe().f_code.co_name
     coord_x = nx.get_node_attributes(G, "x")
     coord_y = nx.get_node_attributes(G, "y")
@@ -171,11 +160,31 @@ def hypotenuse(G):
         coord_2 = (coord_x_2, coord_y_2)
         b = hs.haversine(coord_1, coord_2, unit=Unit.METERS)
         c = coord_z_2 - coord_z_1
-        a = ((b ** 2) + (c ** 2)) ** (1/2)
+        a = ((b ** 2) + (c ** 2)) ** (1 / 2)
         ########################
         data[name] = str(a)
+    return G
+
 
 def define_surface(file_osm):
+    """
+    This function creates a vector with edge surfaces and
+    the nodes that the edge contains.
+
+    :param file_osm:    String
+                        name of osm file
+
+    :return:            vector
+                        It returns a vector with tuples
+                        The first item of the tuple has
+                        a list with the ids of the nodes
+                        within an edge. The second item
+                        of the tuple is the surface of
+                        the edge. (asphalt, unpaved,
+                        paved, etc.)
+                        Ex: [([1, 2, 3],'asphalt'),
+                            ([4, 5, 6],'unpaved')]
+    """
 
     le = len(file_osm)
     if file_osm[le-4] + file_osm[le-3] + file_osm[le-2] + file_osm[le-1] != '.osm':
@@ -186,36 +195,228 @@ def define_surface(file_osm):
     osm = x.documentElement
     all_items = []
     child = [i for i in osm.childNodes if i.nodeType == x.ELEMENT_NODE]
-    surface = ''
 
     for i in child:
         if i.nodeName == "way":
             way = [cont for cont in i.childNodes if cont.nodeType == x.ELEMENT_NODE]
             nd = []
+            surface_floor = ''
             for tags in way:
                 if tags.nodeName == 'nd':
                     nd.append(tags.getAttribute('ref'))
                 if tags.getAttribute('k') == 'surface':
-                    surface = tags.getAttribute('v')
-            if len(surface) > 1:
-                all_items.append((nd, surface))
-    print(all_items)
+                    surface_floor = tags.getAttribute('v')
+            if len(surface_floor) > 1:
+                all_items.append((nd, surface_floor))
+
     return all_items
 
 
-def _work(surface_floor, vehicle_mass, angle_inclination, displacement):
+def _surface(u, v, surface_vector):
+    """
+
+    :param u:               float/string
+                            id of the source node
+
+    :param v:               float/string
+                            id of the target node
+
+    :param surface_vector:  vector
+                            The vector must have tuples.
+                            The first item of the tuple has
+                            a list with the ids of the nodes
+                            within an edge. The second item
+                            of the tuple is the surface of
+                            the edge. Created by the
+                            'define_surface' function.
+
+    :return:                Surface of edge that contains the
+                            input nodes u and v.
+    """
+    for i in surface_vector:
+        if str(u) in i[0] and str(v) in i[0]:
+            return i[1]
+
+
+def surface(G, directory, file_name):
+    """
+    This function configures the surface of the graph edges.
+
+    :param G:           NetworkX graph.
+                        input graph
+
+    :param directory:   String
+                        directory of the '.osm' file.
+
+    :param file_name:   String
+                        name file '.osm', included
+                        file extension. It can be obtained
+                        in Open Street Map.
+
+    :return G:          NetworkX graph
+                        Graph with surface information in
+                        each edge.
+    """
+    surface_vector = define_surface(directory + file_name)
+    function_name = inspect.currentframe().f_code.co_name
+    for u, v, k, data in G.edges(keys=True, data=True):
+        surface_name = _surface(u, v, surface_vector)
+        if surface_name is not None:
+            data[function_name] = surface_name
+        else:
+            data[function_name] = 'paved'
+    return G
+
+
+def define_max_speed(highway):
+    """
+    This function defines the speed limit from the type of way;
+    Ex: the 'motorway' input returns 110 (Km/h)
+
+    :param highway:     String
+                        Open Street Map type of a way.
+
+    :return:            int
+                        Speed limit estimate of the way in
+                        Brazil.
+    """
+
+    # the dict contains the speed limit of each way type in 'Km/h'.
+    maxspeed = {'motorway': 110, 'trunk': 80, 'primary': 80,
+                'secondary': 60, 'tertiary': 40, 'residential': 30,
+                'unclassified': 60, 'motorway_link': 80, 'trunk_link': 80,
+                'primary_link': 60, 'secondary_link': 40, 'tertiary_link': 40,
+                'living_street': 30, 'service': 30, 'pedestrian': 10,
+                'track': 60, 'sidewalk': 10, 'footway': 10, 'crossing': 10,
+                'steps': 200}
+
+    max_speed = maxspeed.get(highway)
+
+    # if the way type is not in the dict, it assumes 60 km/h
+    if max_speed is None:
+        return 60
+    else:
+        return max_speed
+
+
+def maxspeed(G):
+    """
+    This function
+    :param G:       NetworkX graph.
+                    input graph
+    :return:        NetworkX graph.
+                    graph with max speed attribute
+                    in all edges
+    """
+
+    # number of edges connecting two points
+    width_dict = Counter(G.edges())
+    edge_width = {}
+    for ((u, v), value) in width_dict.items():
+        edge_width.update([((u,v), value)])
+
+    # for each edge considering maxspeed attribute
+    for (u, v, wt) in G.edges.data('maxspeed'):
+
+        # if maxspeed attribute is not None,
+        # it does not need to do anything.
+        # if it is None, it defines the maxspeed.
+        if wt is None:
+            number_edges = edge_width.get((u, v))
+
+            # if there is just one edge between two nodes,
+            # the for loop will have one iteration
+            for i in range(number_edges):
+
+                # it gets the type of the way
+                type_highway = G.edges[u, v, i]['highway']
+
+                # if there is more than one
+                # type of highway in a list
+                if type(type_highway) == list:
+
+                    # it gets the max speed in the list
+                    # of the way types
+                    max_speed_highway = 0
+                    for j in type_highway:
+                        max_speed = define_max_speed(j)
+                        if max_speed > max_speed_highway:
+                            max_speed_highway = max_speed
+
+                    G.edges[u, v, i]['maxspeed'] = max_speed_highway
+                else:
+                    max_speed = define_max_speed(type_highway)
+                    G.edges[u, v, i]['maxspeed'] = max_speed
+
+    return G
+
+
+def max_speed_factor(weight, speed):
+    """
+    This function multiplies the weight of the edge by a factor,
+    according to the maximum speed of the way. The higher the
+    speed limit, the more dangerous.
+
+    :param weight:      float
+                        Edge weight
+
+    :param speed:       float
+                        Speed limit of the way
+
+    :return:            float
+    """
+
+    speed = float(speed)
+
+    if speed < 20:
+        factor = 1
+    elif speed < 40:
+        factor = 2
+    elif speed < 50:
+        factor = 3
+    elif speed < 70:
+        factor = 4
+    elif speed < 90:
+        factor = 5
+    else:
+        factor = 6
+
+    return weight * factor
+
+
+def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
+    """
+
+    :param vehicle_mass:        float
+                                Instant vehicle mass in Kg
+
+    :param surface_floor:       String
+                                Type of the floor surface in the way.
+                                Ex: asphalt
+
+    :param angle_inclination:   float
+                                angle inclination of the way,
+                                according to elevation
+
+    :param hypotenuse_length:   float
+                                The displacement value calculated
+                                according to angle of the inclination
+
+    :return:                    float
+                                The resultant work in Joules
+    """
 
     # vehicle_mass in kg
 
     rolling_coefficients = {"paved": 0.01, "asphalt": 0.01, "concrete": 0.01,
                             "concrete:lanes": 0.01, "concrete:plates": 0.015,
                             "paving_stones": 0.02, "sett": 0.02, "unhewn_cobblestone": 0.032,
-                            "cobblestone" :0.032, "metal":0.01, "stepping_stones":0.4,
-                            "unpaved":0.06, "compacted":0.06, "fine_gravel": 0.06,
+                            "cobblestone": 0.032, "metal": 0.01, "stepping_stones":0.4,
+                            "unpaved": 0.06, "compacted": 0.06, "fine_gravel": 0.06,
                             "gravel": 0.08, "rock": 0.08, "pebblestone": 0.08,
-                            "ground": 0.1, "dirt":0.2, "earth": 0.2, "grass": 0.05,
-                            "grass_paver": 0.1, "snow":0.2, "woodchips": 0.05,
-                            "sand":0.05, "mud":0.05}
+                            "ground": 0.1, "dirt": 0.2, "earth": 0.2, "grass": 0.05,
+                            "grass_paver": 0.1, "snow": 0.2, "woodchips": 0.05,
+                            "sand": 0.05, "mud": 0.05}
 
     rolling_coefficient = rolling_coefficients.get(surface_floor)
     air_density = 1.2  # km / m³
@@ -225,7 +426,7 @@ def _work(surface_floor, vehicle_mass, angle_inclination, displacement):
     if rolling_coefficient is None:
         rolling_coefficient = 0.01 * (1 + (0.001 * speed))
 
-    displacement = float(displacement)
+    hypotenuse_length = float(hypotenuse_length)
     normal = vehicle_mass * constants.g * math.cos(abs(angle_inclination))
     rolling_resistance = rolling_coefficient * normal
     aerodynamic_force = (1 / 2) * air_density * aerodynamic_coefficient \
@@ -235,17 +436,43 @@ def _work(surface_floor, vehicle_mass, angle_inclination, displacement):
     # force to maintain a constant velocity
     force = aerodynamic_force + px + rolling_resistance
 
-    resultant_work = force * displacement
+    resultant_work = force * hypotenuse_length
 
     return resultant_work
 
 
-def work(G, floor_type, vehicle_mass):
-    function_name = inspect.currentframe().f_code.co_name
-    hypotenuse(G)
+def update_weight(G, vehicle_mass):
+    """
+    Update edge weight.
+
+    :param G:               NetworkX graph.
+                            input graph
+
+    :param vehicle_mass:    float
+                            The instant mass of the vehicle
+
+    :return:                function
+                            it returns a function that verifies an edge weight
+    """
+
     for u, v, k, data in G.edges(keys=True, data=True):
-        data[function_name] = _work(floor_type, vehicle_mass, data['grade'], data['hypotenuse'])
-    return lambda u, v, d: min(attr.get(function_name, 1) for attr in d.values())
+        weight = _work(vehicle_mass, data['surface'], data['grade'], data['hypotenuse'])
+        data['weight'] = max_speed_factor(weight, data['maxspeed'])
+    return lambda u, v, d: min(attr.get('weight', 1) for attr in d.values())
+
+
+def configure_graph(G, geotiff_name, stop_points):
+
+    G = Scenario.add_collect_points(G, stop_points)
+    G = set_node_elevation(G, MAPS_DIRECTORY, geotiff_name)
+    G = edge_grades(G)
+    G = surface(G, MAPS_DIRECTORY, FILE_NAME_OSM)
+    G = hypotenuse(G)
+    G = maxspeed(G)
+    update_weight(G, 10)
+
+    save_graph_file(G, MAPS_DIRECTORY, GRAPH_NAME)
+    plot_graph(G)
 
 
 if __name__ == '__main__':
@@ -253,6 +480,8 @@ if __name__ == '__main__':
     G = set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
     G = edge_grades(G)
     nodes = list(G.nodes)
-    # work_f = work(G, 0.5, 10)
-    # save_graph_file(G, '../' + MAPS_DIRECTORY, 'map1')
-    define_surface('../'+ MAPS_DIRECTORY + FILE_NAME_OSM)
+    G = surface(G, '../' + MAPS_DIRECTORY, FILE_NAME_OSM)
+    G = hypotenuse(G)
+    G = maxspeed(G)
+    save_graph_file(G, '../' + MAPS_DIRECTORY, 'map1')
+    work_f = update_weight(G, 10)
