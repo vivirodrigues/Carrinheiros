@@ -50,7 +50,7 @@ class Advertisement:
     def set_measure_unit(self):
         ###
         # the unit of measure can be a unit of mass, volume, etc.
-        # String("liters", "milliliters", "kilograms", "grams", "units", etc)
+        # String: L = "liters", ml = "milliliters", Kg = "kilograms", g ="grams", u = "units", etc)
         ###
         self.measure_unit = self.json.get("measure_unit")
 

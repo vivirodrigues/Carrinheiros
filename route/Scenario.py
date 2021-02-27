@@ -7,15 +7,17 @@ from Constants import *
 from shapely.geometry import Point, LineString
 
 
-def add_collect_points(G, collect_points):
+def add_collect_points(G, collect_points, ad_weights):
 
     id_new_node = 1000000000
 
-    nodes_collect_points = []
+    nodes_collect_and_weights = {}
+    nodes_collect_and_coordinates = {}
 
     for i in collect_points:
 
         id_new_node += 2
+        weight = 0
 
         # get the adjacent nodes of the coordinate
         nodes_adjacent, location = Map.adjacent_nodes(i)
@@ -76,7 +78,7 @@ def add_collect_points(G, collect_points):
                 else:
                     first_id = keys[1]
                     second_id = keys[0]
-                
+
                 try:
                     highway = G.edges[first_id, second_id, 0]['highway']
                 except:
@@ -86,12 +88,14 @@ def add_collect_points(G, collect_points):
 
                 # create the edge of the first adjacent node
                 # to the closest node inside the way
-                G.add_edge(id_new_node + 1, first_id, length=len_first, highway=highway)
+                G.add_edge(id_new_node + 1, first_id, length=len_first, highway=highway, oneway='false')
+                G.add_edge(first_id, id_new_node + 1, length=len_first, highway=highway, oneway='false')
                 print("Add edge to closest node", id_new_node + 1, first_id)
 
                 # create the edge of the second adjacent node
                 # to the closest node inside the way
-                G.add_edge(id_new_node + 1, second_id, length=len_second, highway=highway)
+                G.add_edge(id_new_node + 1, second_id, length=len_second, highway=highway, oneway='false')
+                G.add_edge(second_id, id_new_node + 1, length=len_second, highway=highway, oneway='false')
                 print("Add edge to closest node", id_new_node + 1, second_id)
 
                 # removes the edge connecting the two adjacent nodes
@@ -103,10 +107,14 @@ def add_collect_points(G, collect_points):
                     G.remove_edge(second_id, first_id)
 
                 len_edge = calculate_distance(i, nearest_node)
-                G.add_edge(id_new_node, id_new_node + 1, length=len_edge, highway='footway')
+                G.add_edge(id_new_node, id_new_node + 1, length=len_edge, highway='footway', oneway='false')
+                G.add_edge(id_new_node + 1, id_new_node, length=len_edge, highway='footway', oneway='false')
                 print("Add edge of the closest to node", id_new_node + 1, id_new_node)
 
-                nodes_collect_points.append(id_new_node)
+                if i in ad_weights:
+                    weight = ad_weights.get(i)[0]
+                nodes_collect_and_weights.update([(id_new_node, weight)])
+                nodes_collect_and_coordinates.update([(id_new_node, i)])
 
             # the distance between edge and the collect point is 0
             # so we get the nearest node to be the point
@@ -114,13 +122,15 @@ def add_collect_points(G, collect_points):
 
                 # get the id of the nearest node
                 id_node = list(Map.closest_node_id(i, nodes_adjacent).keys())[0]
-                nodes_collect_points.append(id_node)
+                if i in ad_weights:
+                    weight = ad_weights.get(i)[0]
+                nodes_collect_and_weights.update([(id_node, weight)])
+                nodes_collect_and_coordinates.update([(id_node, i)])
 
         else:
             print("Error: only tuple are supported.")
 
-    print(nodes_collect_points)
-    return G
+    return G, nodes_collect_and_coordinates, nodes_collect_and_weights
 
 
 def calculate_distance(coordinate_from, coordinate_to):
@@ -152,17 +162,20 @@ def cut(line, distance):
 
 
 if __name__ == '__main__':
-    # node(-22.823953, -47.087718, -22.816008, -47.074891);
-    # node(-22.843953, -47.107718000000006, -22.796008, -47.054891);
     G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
 
     stop_points = [(-22.820204, -47.085525), (-22.825029, -47.068495),
                    (-22.824376, -47.070952), (-22.82503, -47.07410),
                    (-22.82504, -47.07730), (-24.992554, -47.069115)]# (-22.816008, -47.075614)]
-    fig1, ax1 = ox.plot_graph(G, node_size=5, edge_color='#333333', bgcolor='k')
-    Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test1')
-    # G = add_collect_points(G, stop_points)
-    # G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
-    # G = Graph.edge_grades(G)
-    # Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test.graphml')
+    # fig1, ax1 = ox.plot_graph(G, node_size=5, edge_color='#333333', bgcolor='k')
+    # Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test1')
+    weigths = {(-22.816639, -47.074891): (50, 'Kg'), (-22.818317, -47.083415): (30, 'Kg'), (-22.820244, -47.085422): (15, 'Kg'), (-22.823953, -47.087718): (12, 'Kg')}
+    G, nodes_collect_and_coordinates, nodes_collect_and_weights = add_collect_points(G, stop_points, weigths)
+    G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
+    G = Graph.edge_grades(G)
+    Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test.graphml')
     # Graph.plot_graph(G)
+
+    weight = Graph._weight(G, 'weight')
+    distance, route = nx.bidirectional_dijkstra(G, 1000000002, 1000000011, weight)
+    print(route)

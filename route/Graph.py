@@ -11,6 +11,7 @@ from haversine import Unit
 from route import Scenario
 import xml.dom.minidom
 from collections import Counter
+from route import Graph_Collect
 
 
 def set_node_elevation(G, directory, name_file_geotiff):
@@ -97,7 +98,11 @@ def save_graph_file(G, directory='', name_file='map'):
     else:
         name_file += '.graphml'
 
-    ox.io.save_graphml(G, filepath=directory + name_file)
+    try:
+        ox.io.save_graphml(G, filepath=directory + name_file)
+    except:
+        print(type(G))
+        nx.write_graphml(G, path=directory + name_file)
 
 
 def plot_graph(G):
@@ -111,39 +116,22 @@ def plot_graph(G):
     fig1, ax1 = ox.plot_graph(G, node_color=nc, node_size=5, edge_color='#333333', bgcolor='k')
 
 
-
-
-
-def _weight(G, weight):
-    """
-    Update edge weight and returns a function that
-     returns the weight of an edge.
-
-    :param G:           NetworkX graph.
-                        input graph
-
-    :param weight:      if it is a function, it updates
-                        edge weight and returns a function
-                        that verifies an edge weight.
-                        If it is a string, it considers the
-                        string as the name of weight attribute
-                        and returns a function that verifies an
-                        edge weight according to the name
-                        of the attribute
-
-    """
-    if callable(weight):
-        weight_function = update_weight(G, weight)
-        return weight_function
-
-    if G.is_multigraph():
-        return lambda u, v, d: min(attr.get(weight, 1) for attr in d.values())
-    return lambda u, v, data: data.get(weight, 1)
-
-
 def hypotenuse(G):
 
-    # if elevation = 0, do nothing!! gets the length
+    """
+    This function calculates the hypotenuse (distance)
+    considering latitude, longitude and altitude (x, y, z).
+    Also, it uses the pythagorean triangle, where 'a' is
+    the hypotenuse, 'b' is the distance between the x and y
+    coordinates, and c is the altitude (z).
+
+    :param G:       NetworkX graph.
+                    input graph
+
+    :return:        NetworkX graph.
+                    Graph with the hypotenuse data
+                    in each edge.
+    """
 
     name = inspect.currentframe().f_code.co_name
     coord_x = nx.get_node_attributes(G, "x")
@@ -160,7 +148,10 @@ def hypotenuse(G):
         coord_2 = (coord_x_2, coord_y_2)
         b = hs.haversine(coord_1, coord_2, unit=Unit.METERS)
         c = coord_z_2 - coord_z_1
-        a = ((b ** 2) + (c ** 2)) ** (1 / 2)
+        if c != 0:
+            a = ((b ** 2) + (c ** 2)) ** (1 / 2)
+        else:
+            a = data['length']
         ########################
         data[name] = str(a)
     return G
@@ -304,6 +295,7 @@ def maxspeed(G):
     This function
     :param G:       NetworkX graph.
                     input graph
+
     :return:        NetworkX graph.
                     graph with max speed attribute
                     in all edges
@@ -368,20 +360,21 @@ def max_speed_factor(weight, speed):
 
     speed = float(speed)
 
-    if speed < 20:
-        factor = 1
-    elif speed < 40:
-        factor = 2
-    elif speed < 50:
-        factor = 3
-    elif speed < 70:
+    if speed < 21:
+        factor = 0
+    elif speed < 41:
         factor = 4
-    elif speed < 90:
-        factor = 5
-    else:
+    elif speed < 61:
         factor = 6
+    elif speed < 81:
+        factor = 8
+    elif speed < 91:
+        factor = 9
+    else:
+        factor = 10
 
-    return weight * factor
+    weight = weight + (weight * (factor/100))
+    return weight
 
 
 def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
@@ -418,11 +411,11 @@ def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
                             "grass_paver": 0.1, "snow": 0.2, "woodchips": 0.05,
                             "sand": 0.05, "mud": 0.05}
 
-    rolling_coefficient = rolling_coefficients.get(surface_floor)
     air_density = 1.2  # km / m³
     aerodynamic_coefficient = 1  # flat surface
     frontal_vehicle_area = 1  # m²
     speed = 0.83  # m/s = 3 km/h
+    rolling_coefficient = rolling_coefficients.get(surface_floor)
     if rolling_coefficient is None:
         rolling_coefficient = 0.01 * (1 + (0.001 * speed))
 
@@ -456,23 +449,76 @@ def update_weight(G, vehicle_mass):
     """
 
     for u, v, k, data in G.edges(keys=True, data=True):
+
         weight = _work(vehicle_mass, data['surface'], data['grade'], data['hypotenuse'])
         data['weight'] = max_speed_factor(weight, data['maxspeed'])
-    return lambda u, v, d: min(attr.get('weight', 1) for attr in d.values())
+
+    # lambda u, v, i, d: min(d.get((u,v,i), 1) for attr in d
+    return G
 
 
-def configure_graph(G, geotiff_name, stop_points):
+def get_edge_weight(G, u, v, id_edge):
+    """
 
-    G = Scenario.add_collect_points(G, stop_points)
+    :param G:           NetworkX graph.
+                        input graph
+
+    :param u:           Source node of the edge
+
+    :param v:           Target node of the edge
+
+    :param id_edge:     Integer
+                        Id of the edge
+
+    :return:            float
+                        The weight of the edge
+    """
+    weights = nx.get_edge_attributes(G, 'weight')
+    return weights.get((u, v, id_edge))
+
+
+def _weight(G, weight):
+    """
+    Update edge weight and returns a function that
+     returns the weight of an edge.
+
+    :param G:           NetworkX graph.
+                        input graph
+
+    :param weight:      if it is a function, it updates
+                        edge weight and returns a function
+                        that verifies an edge weight.
+                        If it is a string, it considers the
+                        string as the name of weight attribute
+                        and returns a function that verifies an
+                        edge weight according to the name
+                        of the attribute
+
+    """
+    if callable(weight):
+        return weight
+
+    if G.is_multigraph():
+        return lambda u, v, d: min(attr.get(weight, 1) for attr in d.values())
+    return lambda u, v, data: data.get(weight, 1)
+
+
+def configure_graph(G, geotiff_name, stop_points, vehicle_mass, ad_weights):
+
+    G, nodes_and_coordinates, nodes_and_weights = Scenario.add_collect_points(G, stop_points, ad_weights)
     G = set_node_elevation(G, MAPS_DIRECTORY, geotiff_name)
     G = edge_grades(G)
     G = surface(G, MAPS_DIRECTORY, FILE_NAME_OSM)
     G = hypotenuse(G)
     G = maxspeed(G)
-    update_weight(G, 10)
+    G = update_weight(G, vehicle_mass)
+    H = Graph_Collect.create_graph_route(nodes_and_coordinates, nodes_and_weights)
+    #H = Graph_Collect.update_weight(G, H, vehicle_mass)
 
     save_graph_file(G, MAPS_DIRECTORY, GRAPH_NAME)
-    plot_graph(G)
+    # plot_graph(G)
+
+    return G, H
 
 
 if __name__ == '__main__':
@@ -483,5 +529,8 @@ if __name__ == '__main__':
     G = surface(G, '../' + MAPS_DIRECTORY, FILE_NAME_OSM)
     G = hypotenuse(G)
     G = maxspeed(G)
+    G = update_weight(G, 10)
+
     save_graph_file(G, '../' + MAPS_DIRECTORY, 'map1')
-    work_f = update_weight(G, 10)
+
+

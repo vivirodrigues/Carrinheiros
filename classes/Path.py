@@ -11,7 +11,7 @@ class Path:
         self.stop_points = []
         self.start_point = ()
         self.end_point = ()
-        self.weights = []
+        self.weights = {}
         self.directory_file_json = dir_json # '../DB/'
         self.main()
 
@@ -51,6 +51,14 @@ class Path:
         coordinates_ads.insert(len(coordinates_ads), self.end_point)
         self.stop_points = coordinates_ads
 
+    def set_weight(self):
+        for i in self.available_ads:
+            ads = Advertisement.get_ads(i, self.directory_file_json)
+            amount = ads.get_amount()
+            weight = ads.get_measure_unit()
+            coordinates = ads.get_coordinates()
+            self.weights.update([(coordinates, (amount, weight))])
+
     def get_start_point(self):
         return self.start_point
 
@@ -63,11 +71,15 @@ class Path:
     def get_stop_points(self):
         return self.stop_points
 
+    def get_weight(self):
+        return self.weights
+
     def main(self):
         self.set_start_point()
         self.set_end_point()
         self.set_available_ads()
         self.set_stop_points()
+        self.set_weight()
 
 
 if __name__ == "__main__":
