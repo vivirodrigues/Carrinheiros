@@ -4,6 +4,7 @@ import osmnx as ox
 from Constants import *
 from route import Graph
 from route import Graph_Collect
+from route import Heuristics
 
 
 class Carrinheiro:
@@ -14,6 +15,8 @@ class Carrinheiro:
         self.carrinheiro = User.get_user(id_user, DATABASE_DIRECTORY)
         self.path = Path.Path(self.carrinheiro, date, DATABASE_DIRECTORY)
         self.ad_weights = self.path.get_weight()
+        self.id_node_start = ''
+        self.id_node_end = ''
 
     def main(self):
 
@@ -28,12 +31,20 @@ class Carrinheiro:
 
         max_lat, min_lat, max_lon, min_lon = Coordinates.create_osmnx(stop_points)
 
-        # graph
+        # Scenario graph (paths are edges and junctions are nodes)
         G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
-        G, H = Graph.configure_graph(G, geotiff_name, stop_points, self.vehicle_mass, self.ad_weights)
-        # H = Graph_Collect.update_weight(G, H)
-        print(H.nodes.data())
-        Graph_Collect.generate_route(G, H, 110)
+        G, nodes_and_coordinates, nodes_and_weights = Graph.configure_graph(G, geotiff_name, stop_points, self.vehicle_mass, self.ad_weights)
+
+        # Graph with all collect points
+        H = Graph_Collect.create_graph_route(nodes_and_coordinates, nodes_and_weights)
+
+        index_coordinate_start = list(nodes_and_coordinates.values()).index(self.path.start_point)
+        self.id_node_start = list(nodes_and_coordinates.keys())[index_coordinate_start]
+        index_coordinate_end = list(nodes_and_coordinates.values()).index(self.path.end_point)
+        self.id_node_end = list(nodes_and_coordinates.keys())[index_coordinate_end]
+
+        print("From", self.id_node_start, "to", self.id_node_end)
+        route = Heuristics._best_first_search(G, H, self.id_node_start, self.id_node_end, self.vehicle_mass)
 
 
 if __name__ == '__main__':

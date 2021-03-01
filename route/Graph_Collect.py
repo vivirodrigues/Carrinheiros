@@ -23,7 +23,6 @@ def create_graph_route(nodes_and_coordinates, nodes_and_weights):
         H.nodes[i]['x'] = coord[1]
         H.nodes[i]['y'] = coord[0]
         H.nodes[i]['mass'] = weight_node
-        print("mass", weight_node)
     return H
 
 
@@ -60,14 +59,8 @@ def get_weight(G, source, target, vehicle_mass):
     return sum_costs(G, path)
 
 
-def generate_route(G, H, vehicle_mass):
-    route = Route.Route(vehicle_mass, list(H.nodes))
-    Heuristics._shortest_path_faster_complete(G, H, 1000000002, vehicle_mass)
-
-
-
-
 if __name__ == '__main__':
     nodes_weight = {1000000002: 0, 1000000004: (50, 'Kg'), 1000000006: (30, 'Kg'), 1000000008: (15, 'Kg'), 994679386: (12, 'Kg'), 1000000012: 0}
     nodes_coord = {1000000002: (-22.816008, -47.075614), 1000000004: (-22.816639, -47.074891), 1000000006: (-22.818317, -47.083415), 1000000008: (-22.820244, -47.085422), 994679386: (-22.823953, -47.087718), 1000000012: (-22.816008, -47.075614)}
-    create_graph_route(nodes_coord, nodes_weight)
+    H = create_graph_route(nodes_coord, nodes_weight)
+    Heuristics._dfs(H, 1000000002, 1000000006, 10)

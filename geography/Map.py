@@ -56,7 +56,8 @@ def _geolocator(coordinate, name_project):
             if location.raw:
                 return location
         except AttributeError:
-            print("Error: The coordinates do not correspond to a valid location. It is necessary to be close to a road.")
+            print(
+                "Error: The coordinates do not correspond to a valid location. It is necessary to be close to a road.")
             # sys.exit()
             return None
         except:
@@ -198,7 +199,6 @@ def closest_node_id(coordinate, nodes):
         # distance between coordinate and the current node in meters
         distance = geopy.distance.geodesic(coordinate, node_coordinate).m
         if distance < min_distance:
-
             # it is necessary to empty the dictionary
             closest = {}
             closest.update([(i, node_coordinate)])
@@ -483,8 +483,15 @@ def adjacent_nodes(coordinate):
             city = location.raw.get('address').get('city')
             search = road + ',' + city
             geolocator = Nominatim(user_agent='DS')
-            location_1 = geolocator.geocode(search)
-            osm_id = location_1.raw.get('osm_id')
+
+            while True:
+                try:
+                    location_1 = geolocator.geocode(search)
+                    osm_id = location_1.raw.get('osm_id')
+                except:
+                    time.sleep(30)
+                    continue
+                break
 
             # get all nodes of the OSM way
             nodes = nodes_from_way_osm(osm_id)

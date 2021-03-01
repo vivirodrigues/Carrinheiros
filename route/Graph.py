@@ -512,13 +512,11 @@ def configure_graph(G, geotiff_name, stop_points, vehicle_mass, ad_weights):
     G = hypotenuse(G)
     G = maxspeed(G)
     G = update_weight(G, vehicle_mass)
-    H = Graph_Collect.create_graph_route(nodes_and_coordinates, nodes_and_weights)
-    #H = Graph_Collect.update_weight(G, H, vehicle_mass)
 
     save_graph_file(G, MAPS_DIRECTORY, GRAPH_NAME)
     # plot_graph(G)
 
-    return G, H
+    return G, nodes_and_coordinates, nodes_and_weights
 
 
 if __name__ == '__main__':

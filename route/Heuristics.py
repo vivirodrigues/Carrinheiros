@@ -51,8 +51,6 @@ def _shortest_path_faster(G, source, target, weight):
     q = deque(source)
     G_adjacents = G.succ if G.is_directed() else G.adj
     n_G = len(G_adjacents)
-    # print(G_adjacents)
-
 
     count = {}
     dist = {}
@@ -103,7 +101,14 @@ def _shortest_path_faster(G, source, target, weight):
     return dist, parent
 
 
-def _shortest_path_faster_complete(G, H, source, vehicle_mass):
+def verifying_nodes(path, nodes):
+    for i in nodes:
+        if i not in list(path):
+            return True
+    return False
+
+
+def _best_first_search(G, H, source, target, vehicle_mass):
     """
     This function returns the single-source shortest path in
     weighted directed graph based on Shortest Path Faster
@@ -128,75 +133,50 @@ def _shortest_path_faster_complete(G, H, source, vehicle_mass):
                         List with all nodes of the
                         shortest path
     """
-    # weight = Graph._weight(G, weight)
-    mass_vehicle = vehicle_mass
-    last_edge = {source: (None, None)}
-    pred_edge = {source: None}
-    source = [source]
-    q = deque(source)
-    H_adjacents = H.succ if H.is_directed() else H.adj
-    n_H = len(H_adjacents)
-    # print(G_adjacents)
+    if source not in H:
+        print("Error")
+        return False
 
-    count = {}
-    dist = {}
-    parent = {}
+    open = [source]
+    closed = []
+    current_vehicle_mass = vehicle_mass
+    nodes_graph = list(H.nodes)
+    nodes_graph.remove(target)
 
-    inf = float("inf")
+    while len(open) > 0:
+        dist = {}
+        node = open.pop(0)
+        closed.append(node)
+        missing = verifying_nodes(closed, nodes_graph)
 
-    # Initialization
-    for i in H.nodes:
-        dist.update([(i, inf)])
-        parent.update([(i, None)])
+        # if current node is the target (objective) and
+        # there is not nodes missing to be visited
+        if node == target and missing is False:
+            print("route", closed)
+            return closed
+        else:
 
-    dist.update([(source[0], 0)])
+            # checks nodes that have not yet been added in closed
+            possibilities = set(H.adj[node]) - set(closed)
 
-    while q:
+            for u in possibilities:
+                # checks the edge weight according to the vehicle's mass +
+                # mass increase at the current vertex
+                edge_weight = Graph_Collect.get_weight(G, node, u, current_vehicle_mass + H.nodes[u]['mass'])
+                dist.update([(u, edge_weight)])
 
-        print("fila", q)
-        print("massa do veiculo", mass_vehicle)
+            # sorting the dict according to edge weights
+            dist = dict(sorted(dist.items(), key=lambda item: item[1]))
 
-        u = q.popleft()
+            if len(dist) < 1 and source == target:
+                new_node = target
+            else:
+                new_node = list(dist.keys())[0]
+                if len(dist) > 1 and new_node == target:
+                    new_node = list(dist.keys())[1]
 
-        # for each edge between the node u and their adjacent nodes
-        for v, e in H_adjacents[u].items():
-
-            # Relaxing
-            #new_dist_v = dist.get(u) + weight(u, v, e)
-            new_dist_v = dist.get(u) + Graph_Collect.get_weight(G, u, v, mass_vehicle)
-            print("peso ", u, v, ':', Graph_Collect.get_weight(G, u, v, mass_vehicle))
-            print("Compárison", new_dist_v, dist.get(v))
-
-            if new_dist_v < dist.get(v):
-
-                if v in last_edge[u]:
-                    print("Error: Negative cost cycle.")
-                    return False
-
-                if v in pred_edge and pred_edge[v] == u:
-                    last_edge[v] = last_edge[u]
-                else:
-                    last_edge[v] = (u, v)
-
-                dist.update([(v, new_dist_v)])
-                parent.update([(v, u)])
-                mass_vehicle += float(H.nodes[u]['mass'])
-
-                print("parent", parent)
-                print("Peso do veiculo atualizado", float(H.nodes[u]['mass']), mass_vehicle)
-
-                if v not in q:
-
-                    q.append(v)
-                    count_v = count.get(v, 0) + 1
-                    if count_v == n_H:
-                        print("Error: Negative cost cycle")
-                        return False
-                    count[v] = count_v
-                    pred_edge[v] = u
-
-    return dist, parent
-    #return dist, route[::-1]
+            open.append(new_node)
+            current_vehicle_mass += H.nodes[new_node]['mass']
 
 
 def _path(source, target, parent, path):
