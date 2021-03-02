@@ -1,6 +1,7 @@
 import networkx as nx
 from route import Heuristics
 from route import Graph
+import matplotlib.pyplot as plt
 from classes import Route
 import osmnx as ox
 from Constants import *
@@ -39,25 +40,25 @@ def sum_costs(G, path):
     return sum_costs
 
 
-def update_weight(G, H):
-
-    edge_list = list(H.edges)
-
-    for i in range(len(H.edges)-1):
-        path = Heuristics.shortest_path_faster(G, edge_list[i][0], edge_list[i][1], 'weight')
-
-        # Add weight in the edge
-        H.edges[edge_list[i][0], edge_list[i][1]]['weight'] = sum_costs(G, path)
-
-    return H
-
-
 def get_weight(G, source, target, vehicle_mass):
 
     G = Graph.update_weight(G, vehicle_mass)
     path = Heuristics.shortest_path_faster(G, source, target, 'weight')
     return sum_costs(G, path)
 
+
+def sum_costs_route(G, H, route, vehicle_mass):
+
+    vehicle_mass += H.nodes[route[0]]['mass']
+    cost_work = 0
+    cost_work_all = 0
+
+    for node in range(len(route)-1):
+        vehicle_mass += H.nodes[route[node]]['mass']
+        cost_work = get_weight(G, route[node], route[node+1], vehicle_mass)
+        cost_work_all += cost_work
+
+    return cost_work_all
 
 if __name__ == '__main__':
     nodes_weight = {1000000002: 0, 1000000004: (50, 'Kg'), 1000000006: (30, 'Kg'), 1000000008: (15, 'Kg'), 994679386: (12, 'Kg'), 1000000012: 0}

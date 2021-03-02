@@ -2,3 +2,10 @@ MAPS_DIRECTORY = 'data/maps/'
 DATABASE_DIRECTORY = 'data/DB/'
 FILE_NAME_OSM = 'map.osm'
 GRAPH_NAME = 'map'
+VEHICLE_MASS = 110
+
+########## Genetic Algorithms
+AMOUNT_INDIVIDUALS = 10
+MUTATION_PERCENTAGE = 30
+CROSSOVER_PERCENTAGE = 60 # must be an even number
+LIMIT_ITERATION = 10

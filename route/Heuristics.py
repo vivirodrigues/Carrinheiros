@@ -152,7 +152,6 @@ def _best_first_search(G, H, source, target, vehicle_mass):
         # if current node is the target (objective) and
         # there is not nodes missing to be visited
         if node == target and missing is False:
-            print("route", closed)
             return closed
         else:
 
@@ -162,7 +161,7 @@ def _best_first_search(G, H, source, target, vehicle_mass):
             for u in possibilities:
                 # checks the edge weight according to the vehicle's mass +
                 # mass increase at the current vertex
-                edge_weight = Graph_Collect.get_weight(G, node, u, current_vehicle_mass + H.nodes[u]['mass'])
+                edge_weight = Graph_Collect.get_weight(G, node, u, current_vehicle_mass)
                 dist.update([(u, edge_weight)])
 
             # sorting the dict according to edge weights

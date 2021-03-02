@@ -4,7 +4,7 @@ import osmnx as ox
 from Constants import *
 from route import Graph
 from route import Graph_Collect
-from route import Heuristics
+from route import Heuristics, GA
 
 
 class Carrinheiro:
@@ -17,6 +17,7 @@ class Carrinheiro:
         self.ad_weights = self.path.get_weight()
         self.id_node_start = ''
         self.id_node_end = ''
+        self.nodes_h = []
 
     def main(self):
 
@@ -37,6 +38,7 @@ class Carrinheiro:
 
         # Graph with all collect points
         H = Graph_Collect.create_graph_route(nodes_and_coordinates, nodes_and_weights)
+        self.nodes_h = list(nodes_and_coordinates.keys())
 
         index_coordinate_start = list(nodes_and_coordinates.values()).index(self.path.start_point)
         self.id_node_start = list(nodes_and_coordinates.keys())[index_coordinate_start]
@@ -45,7 +47,9 @@ class Carrinheiro:
 
         print("From", self.id_node_start, "to", self.id_node_end)
         route = Heuristics._best_first_search(G, H, self.id_node_start, self.id_node_end, self.vehicle_mass)
+        print("Route Heuristc", route)
 
+        GA.GA(G, H, self.id_node_start, self.id_node_end, self.nodes_h)
 
 if __name__ == '__main__':
     id_user1 = "000"
