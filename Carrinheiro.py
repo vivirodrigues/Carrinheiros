@@ -5,6 +5,7 @@ from Constants import *
 from route import Graph
 from route import Graph_Collect
 from route import Heuristics, GA
+import time
 
 
 class Carrinheiro:
@@ -46,10 +47,17 @@ class Carrinheiro:
         self.id_node_end = list(nodes_and_coordinates.keys())[index_coordinate_end]
 
         print("From", self.id_node_start, "to", self.id_node_end)
-        route = Heuristics._best_first_search(G, H, self.id_node_start, self.id_node_end, self.vehicle_mass)
-        print("Route Heuristc", route)
-
-        GA.GA(G, H, self.id_node_start, self.id_node_end, self.nodes_h)
+        route = Heuristics._nearest_neighbor(G, H, self.id_node_start, self.id_node_end, self.vehicle_mass)
+        print("Route BFS", route)
+        # route_exact = Heuristics.exact_method(G, H, self.id_node_start, self.id_node_end)
+        # print("Route exact", route_exact)
+        inicio = time.time()
+        cost_GA, route_GA = GA.GA(G, H, self.id_node_start, self.id_node_end, self.nodes_h)
+        fim = time.time()
+        print("tempo", fim - inicio)
+        print("Route GA", route_GA, cost_GA)
+        # 243968.63896098454
+        # [1000000002, 994679386, 1000000008, 1000000006, 1000000012, 1000000004, 1000000002]
 
 if __name__ == '__main__':
     id_user1 = "000"

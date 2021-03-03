@@ -66,11 +66,11 @@ def add_collect_points(G, collect_points, ad_weights):
 
                 # create a node with collect point coordinates
                 G = _add_node(G, i, id_new_node)
-                print("Add node collect", id_new_node)
+                #print("Add node collect", id_new_node)
 
                 # create the closest node inside the way
                 G = _add_node(G, nearest_node, id_new_node + 1)
-                print("Add closest node", id_new_node + 1)
+                #print("Add closest node", id_new_node + 1)
 
                 if first_edge[0] == coordinates[0]:
                     first_id = keys[0]
@@ -90,17 +90,17 @@ def add_collect_points(G, collect_points, ad_weights):
                 # to the closest node inside the way
                 G.add_edge(id_new_node + 1, first_id, length=len_first, highway=highway, oneway='false')
                 G.add_edge(first_id, id_new_node + 1, length=len_first, highway=highway, oneway='false')
-                print("Add edge to closest node", id_new_node + 1, first_id)
+                #print("Add edge to closest node", id_new_node + 1, first_id)
 
                 # create the edge of the second adjacent node
                 # to the closest node inside the way
                 G.add_edge(id_new_node + 1, second_id, length=len_second, highway=highway, oneway='false')
                 G.add_edge(second_id, id_new_node + 1, length=len_second, highway=highway, oneway='false')
-                print("Add edge to closest node", id_new_node + 1, second_id)
+                #print("Add edge to closest node", id_new_node + 1, second_id)
 
                 # removes the edge connecting the two adjacent nodes
                 e = (first_id, second_id)
-                print("Removing the edge", first_id, second_id)
+                #print("Removing the edge", first_id, second_id)
                 if G.has_edge(*e):
                     G.remove_edge(first_id, second_id)
                 else:
@@ -109,7 +109,7 @@ def add_collect_points(G, collect_points, ad_weights):
                 len_edge = calculate_distance(i, nearest_node)
                 G.add_edge(id_new_node, id_new_node + 1, length=len_edge, highway='footway', oneway='false')
                 G.add_edge(id_new_node + 1, id_new_node, length=len_edge, highway='footway', oneway='false')
-                print("Add edge of the closest to node", id_new_node + 1, id_new_node)
+                #print("Add edge of the closest to node", id_new_node + 1, id_new_node)
 
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]

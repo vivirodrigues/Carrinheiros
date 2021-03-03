@@ -5,6 +5,7 @@ from collections import deque
 from Constants import *
 from route import Graph_Collect
 import random
+import more_itertools
 
 
 def bellman_ford(G, initial_node, target_node, weight):
@@ -19,7 +20,7 @@ def bidirectional_dijkstra(G, initial_node, target_node, weight):
     return distance, route
 
 
-def _shortest_path_faster(G, source, target, weight):
+def _shortest_path_faster(G, source, weight):
     """
     This function returns the single-source shortest path in
     weighted directed graph based on Shortest Path Faster
@@ -44,6 +45,7 @@ def _shortest_path_faster(G, source, target, weight):
                         List with all nodes of the
                         shortest path
     """
+
     weight = Graph._weight(G, weight)
     last_edge = {source: (None, None)}
     pred_edge = {source: None}
@@ -108,7 +110,7 @@ def verifying_nodes(path, nodes):
     return False
 
 
-def _best_first_search(G, H, source, target, vehicle_mass):
+def _nearest_neighbor(G, H, source, target, vehicle_mass):
     """
     This function returns the single-source shortest path in
     weighted directed graph based on Shortest Path Faster
@@ -161,8 +163,8 @@ def _best_first_search(G, H, source, target, vehicle_mass):
             for u in possibilities:
                 # checks the edge weight according to the vehicle's mass +
                 # mass increase at the current vertex
-                edge_weight = Graph_Collect.get_weight(G, node, u, current_vehicle_mass)
-                dist.update([(u, edge_weight)])
+                edge_cost = Graph_Collect.cost_path(G, node, u, current_vehicle_mass)
+                dist.update([(u, edge_cost)])
 
             # sorting the dict according to edge weights
             dist = dict(sorted(dist.items(), key=lambda item: item[1]))
@@ -220,10 +222,33 @@ def _path(source, target, parent, path):
 
 
 def shortest_path_faster(G, source, target, weight):
-    dist, parent = _shortest_path_faster(G, source, target, weight)
+    dist, parent = _shortest_path_faster(G, source, weight)
     path = []
     route = _path(source, target, parent, path)
     return route
+
+
+def exact_method(G, H, source, target):
+    nodes_graph = list(H.nodes)
+    nodes_graph.remove(source)
+    if source != target:
+        nodes_graph.remove(target)
+
+    permutations = list(more_itertools.distinct_permutations(nodes_graph, 5))
+
+    costs = []
+    all_permutations = []
+    for i in permutations:
+        i = list(i)
+        i.insert(0, source)
+        i.append(target)
+        all_permutations.append(i)
+        sum_costs = Graph_Collect.sum_costs_route(G, H, i, 110)
+        costs.append(sum_costs)
+    minimum = min(costs)
+    index_minimum = costs.index(minimum)
+
+    return all_permutations[index_minimum]
 
 
 def comparar_paths(G):
