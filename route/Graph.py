@@ -19,12 +19,17 @@ def set_node_elevation(G, directory, name_file_geotiff):
     Add `elevation` attribute to each node in meters.
     Uses elevation data by geotiff file by default
 
-    :param G:       NetworkX graph
-                    input graph
-    :param geotiff: str
-                    path + file_name of the geotiff
-    :return:        networkx.MultiDiGraph
-                    graph with node elevation attributes
+    :param G:           NetworkX graph
+                        input graph
+
+    :param directory:   str
+                        Directory of the geotiff file
+
+    :param geotiff:     str
+                        file_name of the geotiff
+
+    :return:            networkx.MultiDiGraph
+                        graph with node elevation attributes
     """
 
     # create a dict with x coordinates of all nodes
@@ -57,12 +62,9 @@ def set_node_elevation(G, directory, name_file_geotiff):
     return G
 
 
-# def add_surface(G):
-
-
 def edge_grades(G):
     """
-
+    Adds the angle of the roads according to the elevation.
     :param G:   NetworkX graph
                 input graph
     :return:    networkx.MultiDiGraph
@@ -98,11 +100,8 @@ def save_graph_file(G, directory='', name_file='map'):
     else:
         name_file += '.graphml'
 
-    try:
-        ox.io.save_graphml(G, filepath=directory + name_file)
-    except:
-        print(type(G))
-        nx.write_graphml(G, path=directory + name_file)
+    ox.io.save_graphml(G, filepath=directory + name_file)
+    #ox.io.save_graph_shapefile(G, filepath= directory + 'shapefile')
 
 
 def plot_graph(G):
@@ -163,7 +162,8 @@ def define_surface(file_osm):
     the nodes that the edge contains.
 
     :param file_osm:    String
-                        name of osm file
+                        directory + name of osm file
+                        saved in the disk
 
     :return:            vector
                         It returns a vector with tuples
@@ -292,7 +292,8 @@ def define_max_speed(highway):
 
 def maxspeed(G):
     """
-    This function
+    This function defines the maximum speed of the edges.
+
     :param G:       NetworkX graph.
                     input graph
 
@@ -379,6 +380,8 @@ def max_speed_factor(weight, speed):
 
 def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
     """
+    This function calculates the work according to the resistance forces,
+    It includes aerodynamic force, rolling resistance, and gravity (px).
 
     :param vehicle_mass:        float
                                 Instant vehicle mass in Kg
@@ -399,8 +402,6 @@ def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
                                 The resultant work in Joules
     """
 
-    # vehicle_mass in kg
-
     rolling_coefficients = {"paved": 0.01, "asphalt": 0.01, "concrete": 0.01,
                             "concrete:lanes": 0.01, "concrete:plates": 0.015,
                             "paving_stones": 0.02, "sett": 0.02, "unhewn_cobblestone": 0.032,
@@ -411,19 +412,15 @@ def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
                             "grass_paver": 0.1, "snow": 0.2, "woodchips": 0.05,
                             "sand": 0.05, "mud": 0.05}
 
-    air_density = 1.2  # km / m³
-    aerodynamic_coefficient = 1  # flat surface
-    frontal_vehicle_area = 1  # m²
-    speed = 0.83  # m/s = 3 km/h
     rolling_coefficient = rolling_coefficients.get(surface_floor)
     if rolling_coefficient is None:
-        rolling_coefficient = 0.01 * (1 + (0.001 * speed))
+        rolling_coefficient = 0.01 * (1 + (0.001 * SPEED))
 
     hypotenuse_length = float(hypotenuse_length)
     normal = vehicle_mass * constants.g * math.cos(abs(angle_inclination))
     rolling_resistance = rolling_coefficient * normal
-    aerodynamic_force = (1 / 2) * air_density * aerodynamic_coefficient \
-                        * frontal_vehicle_area * (speed ** 2)
+    aerodynamic_force = (1 / 2) * AIR_DENSITY * AERODYNAMIC_COEFFICIENT \
+                        * FRONTAL_VEHICLE_AREA * (SPEED ** 2)
     px = vehicle_mass * constants.g * math.sin(abs(angle_inclination))
 
     # force to maintain a constant velocity
@@ -436,7 +433,8 @@ def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
 
 def update_weight(G, vehicle_mass):
     """
-    Update edge weight.
+    Update all edge weights of the graph G,
+    according to current vehicle mass.
 
     :param G:               NetworkX graph.
                             input graph
@@ -453,12 +451,12 @@ def update_weight(G, vehicle_mass):
         weight = _work(vehicle_mass, data['surface'], data['grade'], data['hypotenuse'])
         data['weight'] = max_speed_factor(weight, data['maxspeed'])
 
-    # lambda u, v, i, d: min(d.get((u,v,i), 1) for attr in d
     return G
 
 
 def get_edge_weight(G, u, v, id_edge):
     """
+    It gets the edge weight of the graph G.
 
     :param G:           NetworkX graph.
                         input graph

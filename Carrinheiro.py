@@ -46,18 +46,34 @@ class Carrinheiro:
         index_coordinate_end = list(nodes_and_coordinates.values()).index(self.path.end_point)
         self.id_node_end = list(nodes_and_coordinates.keys())[index_coordinate_end]
 
-        print("From", self.id_node_start, "to", self.id_node_end)
-        route = Heuristics._nearest_neighbor(G, H, self.id_node_start, self.id_node_end, self.vehicle_mass)
-        print("Route BFS", route)
-        # route_exact = Heuristics.exact_method(G, H, self.id_node_start, self.id_node_end)
-        # print("Route exact", route_exact)
         inicio = time.time()
-        cost_GA, route_GA = GA.GA(G, H, self.id_node_start, self.id_node_end, self.nodes_h)
+        route_1 = Heuristics.nearest_neighbor(G, H, 1000000006, 1000000006, self.vehicle_mass)
+        cost_total_1, paths_1 = Graph_Collect.sum_costs_route(G, H, route_1, VEHICLE_MASS)
         fim = time.time()
-        print("tempo", fim - inicio)
+        print("Route BFS", route_1, cost_total_1)
+        print("time BFS (s)", fim - inicio)
+
+        inicio = time.time()
+        route_2 = Heuristics.closest_insertion(G, H, 1000000006, 1000000006)
+        cost_total_2, paths_2 = Graph_Collect.sum_costs_route(G, H, route_2, VEHICLE_MASS)
+        fim = time.time()
+        print("Route closest insertion", route_2, cost_total_2)
+        print("time closest insertion (s)", fim - inicio)
+
+        inicio = time.time()
+        cost_total_3, route_3, paths_3 = Heuristics.exact_method(G, H, 1000000006, 1000000006)
+        fim = time.time()
+        print("Route exact method", route_3, cost_total_3)
+        print("time exact method", fim - inicio)
+
+        """
+        inicio = time.time()
+        cost_GA, route_GA = GA.GA(G, H, 1000000012, 1000000006, self.nodes_h)
+        fim = time.time()
         print("Route GA", route_GA, cost_GA)
-        # 243968.63896098454
-        # [1000000002, 994679386, 1000000008, 1000000006, 1000000012, 1000000004, 1000000002]
+        print("Time GA", fim - inicio)
+        """
+
 
 if __name__ == '__main__':
     id_user1 = "000"

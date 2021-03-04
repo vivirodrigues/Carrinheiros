@@ -14,7 +14,7 @@ def initial_population(G, H, source, target):
 
 
 def fitness_individual(G, H, individual):
-    total_work_individual = Graph_Collect.sum_costs_route(G, H, individual, VEHICLE_MASS)
+    total_work_individual, _ = Graph_Collect.sum_costs_route(G, H, individual, VEHICLE_MASS)
     return total_work_individual
 
 
