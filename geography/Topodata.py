@@ -82,8 +82,8 @@ def file_names_topodata(coordinates_osm):
 
     # Latitude must be the string of integer positive
     # (number rounding)
-    min_lat = str(abs(int(coordinates_osm[1])))
-    max_lat = str(abs(int(coordinates_osm[3])))
+    min_lat = abs(int(coordinates_osm[1]))
+    max_lat = abs(int(coordinates_osm[3]))
 
     # Longitudes are adapted according to the
     # Topodata data model: http://www.dsr.inpe.br/topodata/
@@ -97,21 +97,22 @@ def file_names_topodata(coordinates_osm):
 
     # 1 GeoTiff file: same longitude and same latitude
     if max_lat == min_lat and max_lon == min_lon:
-        name = str(max_lat) + hemisphere_max_lat + str(max_lon) + data_type
+        # name = str(max_lat) + hemisphere_max_lat + str(max_lon) + data_type
+        name = "{:02d}".format(max_lat) + hemisphere_max_lat + str(max_lon) + data_type
         return [name]
 
     # 2 GeoTiff files: same longitude or same latitude
     elif max_lon == min_lon or max_lat == min_lat:
-        name_1 = str(min_lat) + hemisphere_min_lat + str(min_lon) + data_type
-        name_2 = str(max_lat) + hemisphere_max_lat + str(max_lon) + data_type
+        name_1 = "{:02d}".format(min_lat) + hemisphere_min_lat + str(min_lon) + data_type
+        name_2 = "{:02d}".format(max_lat) + hemisphere_max_lat + str(max_lon) + data_type
         return [name_1, name_2]
 
     # 4 GeoTiffs files: different longitudes and latitudes
     else:
-        name_1 = str(min_lat) + hemisphere_min_lat + str(min_lon) + data_type
-        name_2 = str(min_lat) + hemisphere_max_lat + str(max_lon) + data_type
-        name_3 = str(max_lat) + hemisphere_max_lat + str(min_lon) + data_type
-        name_4 = str(max_lat) + hemisphere_max_lat + str(max_lon) + data_type
+        name_1 = "{:02d}".format(min_lat) + hemisphere_min_lat + str(min_lon) + data_type
+        name_2 = "{:02d}".format(min_lat) + hemisphere_max_lat + str(max_lon) + data_type
+        name_3 = "{:02d}".format(max_lat) + hemisphere_max_lat + str(min_lon) + data_type
+        name_4 = "{:02d}".format(max_lat) + hemisphere_max_lat + str(max_lon) + data_type
         return [name_1, name_2, name_3, name_4]
 
 

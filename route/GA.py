@@ -7,11 +7,28 @@ import copy
 
 def initial_population(G, H, source, target):
     population = []
-    individual = Heuristics._nearest_neighbor(G, H, source, target, VEHICLE_MASS)
-    for i in range(0, AMOUNT_INDIVIDUALS):
-        population.append(individual)
+    individual_1 = Heuristics.nearest_neighbor(G, H, source, target, VEHICLE_MASS)
+    individual_2 = Heuristics.closest_insertion(G, H, source, target)
+    possibilities = list(H.nodes)
+    if source != target:
+        possibilities.remove(source)
+        possibilities.remove(target)
+    else:
+        possibilities.remove(source)
+    population.append(individual_1)
+    population.append(individual_2)
+    for i in range(AMOUNT_INDIVIDUALS-2):
+        population.append(create_individual(possibilities, source, target))
     return population
 
+
+def create_individual(possibilities, source, target):
+    individual = [source]
+    while len(individual) < len(possibilities):
+        nodes = set(possibilities) - set(individual)
+        individual.append(random.choice(list(nodes)))
+    individual.append(target)
+    return individual
 
 def fitness_individual(G, H, individual):
     total_work_individual, _ = Graph_Collect.sum_costs_route(G, H, individual, VEHICLE_MASS)
@@ -285,18 +302,25 @@ def GA(G, H, source, target, nodes):
 
     n_generation = 0
     criterion = True
+    bests = []
     while criterion is True:
         fitness = fitness_population(G, H, population)
+        fitness = exponential_transformation(fitness)
         population = next_generation(population, fitness, source, target, nodes)
+        bests.append(population[-1])
         if n_generation == LIMIT_ITERATION:
             criterion = False
+        elif len(bests) > 6:
+            if bests[len(bests)-1] == bests[len(bests)-4]:
+                criterion = False
         n_generation += 1
 
     # print("initial pop", population_initial)
+    # print("n_generation", n_generation)
     # print("Fitness last gen", fitness)
 
     best = best_individual(population, fitness)
     index_best = population.index(best)
     cost = fitness[index_best]
 
-    return cost, best
+    return best

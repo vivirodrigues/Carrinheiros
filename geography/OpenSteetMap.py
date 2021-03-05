@@ -1,4 +1,7 @@
 from geography import Download, Coordinates, Overpass
+import haversine as hs
+from haversine import Unit
+from Constants import *
 
 
 def define_iso(search_coordinate):
@@ -128,10 +131,20 @@ def file_osm(directory, file_name, coordinates_points):
     :return:
     """
 
+    # validate coordinates points
+    # according to coverage area
+    coordinate_initial = (coordinates_points[0][1], coordinates_points[0][0])
+    for i in coordinates_points:
+        distance_node_initial = hs.haversine((i[1], i[0]), coordinate_initial, unit=Unit.METERS)
+        if distance_node_initial > COVERAGE_AREA:
+            print("The ad available in the", i, "coordinate is outside the coverage area.")
+            coordinates_points.remove(i)
+
     coordinates_list = Coordinates.coordinates_list_bbox(coordinates_points)
     coordinates_osm = Coordinates.coordinates_string(coordinates_list)
     print(coordinates_osm)
     _osm(coordinates_osm, directory, file_name)
+    return coordinates_points
 
 
 if __name__ == "__main__":

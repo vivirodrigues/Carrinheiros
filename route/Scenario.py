@@ -5,14 +5,16 @@ from route import Graph
 import osmnx as ox
 from Constants import *
 from shapely.geometry import Point, LineString
+import haversine as hs
+from haversine import Unit
 
 
 def add_collect_points(G, collect_points, ad_weights):
 
     id_new_node = 1000000000
 
-    nodes_collect_and_weights = {}
-    nodes_collect_and_coordinates = {}
+    nodes_mass_increment = {}
+    nodes_collect_coordinates = {}
 
     for i in collect_points:
 
@@ -24,6 +26,7 @@ def add_collect_points(G, collect_points, ad_weights):
 
         # it do not considers invalid coordinates
         if nodes_adjacent is None or location is None:
+            print("The ad on the", i,"coordinate is in an invalid area.")
             pass
 
         # the dict must have 2 items (2 adjacent nodes)
@@ -38,7 +41,7 @@ def add_collect_points(G, collect_points, ad_weights):
             # if the adjacent nodes are not in the graph
             if keys[0] not in G or keys[1] not in G:
 
-                keys[0], keys[1], key, shapely, distance = ox.get_nearest_edge(G, i, return_geom=True, return_dist=True)
+                keys[0], keys[1], key, shapely, distance_ = ox.get_nearest_edge(G, i, return_geom=True, return_dist=True)
 
                 attribute_x = nx.get_node_attributes(G, 'x')
                 attribute_y = nx.get_node_attributes(G, 'y')
@@ -113,8 +116,8 @@ def add_collect_points(G, collect_points, ad_weights):
 
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]
-                nodes_collect_and_weights.update([(id_new_node, weight)])
-                nodes_collect_and_coordinates.update([(id_new_node, i)])
+                nodes_mass_increment.update([(id_new_node, weight)])
+                nodes_collect_coordinates.update([(id_new_node, i)])
 
             # the distance between edge and the collect point is 0
             # so we get the nearest node to be the point
@@ -124,13 +127,13 @@ def add_collect_points(G, collect_points, ad_weights):
                 id_node = list(Map.closest_node_id(i, nodes_adjacent).keys())[0]
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]
-                nodes_collect_and_weights.update([(id_node, weight)])
-                nodes_collect_and_coordinates.update([(id_node, i)])
+                nodes_mass_increment.update([(id_node, weight)])
+                nodes_collect_coordinates.update([(id_node, i)])
 
         else:
             print("Error: only tuple are supported.")
 
-    return G, nodes_collect_and_coordinates, nodes_collect_and_weights
+    return G, nodes_collect_coordinates, nodes_mass_increment
 
 
 def calculate_distance(coordinate_from, coordinate_to):
