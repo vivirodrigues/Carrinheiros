@@ -5,20 +5,27 @@ from route import Graph
 import osmnx as ox
 from Constants import *
 from shapely.geometry import Point, LineString
+from simulation import Map_osm
 import haversine as hs
 from haversine import Unit
 
 
 def add_collect_points(G, collect_points, ad_weights):
 
-    id_new_node = 1000000000
+    id_new_node = 100000000000
+    id_new_edge = 100000
 
     nodes_mass_increment = {}
     nodes_collect_coordinates = {}
 
+    tree = Map_osm.parse_file_tree(MAPS_DIRECTORY + FILE_NAME_OSM)
+    osm_tag = tree.getroot()
+
     for i in collect_points:
 
         id_new_node += 2
+        id_new_edge += 6
+
         weight = 0
 
         # get the adjacent nodes of the coordinate
@@ -69,11 +76,18 @@ def add_collect_points(G, collect_points, ad_weights):
 
                 # create a node with collect point coordinates
                 G = _add_node(G, i, id_new_node)
-                #print("Add node collect", id_new_node)
+
+                if str(id_new_node) == "100000000002":
+                    osm_tag = Map_osm.create_node(osm_tag, str(0), str(i[0]), str(i[1]))
+                else:
+                    osm_tag = Map_osm.create_node(osm_tag, str(id_new_node), str(i[0]), str(i[1]))
+
+                # print("Add node collect", id_new_node)
 
                 # create the closest node inside the way
                 G = _add_node(G, nearest_node, id_new_node + 1)
-                #print("Add closest node", id_new_node + 1)
+                osm_tag = Map_osm.create_node(osm_tag, str(id_new_node + 1), str(nearest_node[0]), str(nearest_node[1]))
+                # print("Add closest node", id_new_node + 1)
 
                 if first_edge[0] == coordinates[0]:
                     first_id = keys[0]
@@ -92,18 +106,22 @@ def add_collect_points(G, collect_points, ad_weights):
                 # create the edge of the first adjacent node
                 # to the closest node inside the way
                 G.add_edge(id_new_node + 1, first_id, length=len_first, highway=highway, oneway='false')
+                osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge), str(id_new_node + 1), str(first_id))
                 G.add_edge(first_id, id_new_node + 1, length=len_first, highway=highway, oneway='false')
-                #print("Add edge to closest node", id_new_node + 1, first_id)
+                osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 1), str(first_id), str(id_new_node + 1))
+                # print("Add edge to closest node", id_new_node + 1, first_id)
 
                 # create the edge of the second adjacent node
                 # to the closest node inside the way
                 G.add_edge(id_new_node + 1, second_id, length=len_second, highway=highway, oneway='false')
+                osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 2), str(id_new_node + 1), str(second_id))
                 G.add_edge(second_id, id_new_node + 1, length=len_second, highway=highway, oneway='false')
-                #print("Add edge to closest node", id_new_node + 1, second_id)
+                osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 3), str(second_id), str(id_new_node + 1))
+                # print("Add edge to closest node", id_new_node + 1, second_id)
 
                 # removes the edge connecting the two adjacent nodes
                 e = (first_id, second_id)
-                #print("Removing the edge", first_id, second_id)
+                # print("Removing the edge", first_id, second_id)
                 if G.has_edge(*e):
                     G.remove_edge(first_id, second_id)
                 else:
@@ -111,7 +129,9 @@ def add_collect_points(G, collect_points, ad_weights):
 
                 len_edge = calculate_distance(i, nearest_node)
                 G.add_edge(id_new_node, id_new_node + 1, length=len_edge, highway='footway', oneway='false')
+                osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 4), str(id_new_node), str(id_new_node + 1))
                 G.add_edge(id_new_node + 1, id_new_node, length=len_edge, highway='footway', oneway='false')
+                osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 5), str(id_new_node + 1), str(id_new_node))
                 #print("Add edge of the closest to node", id_new_node + 1, id_new_node)
 
                 if i in ad_weights:
@@ -133,6 +153,7 @@ def add_collect_points(G, collect_points, ad_weights):
         else:
             print("Error: only tuple are supported.")
 
+    tree.write(MAPS_DIRECTORY + 'output.osm', xml_declaration=True)
     return G, nodes_collect_coordinates, nodes_mass_increment
 
 

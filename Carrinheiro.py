@@ -46,34 +46,41 @@ class Carrinheiro:
         self.id_node_start = list(nodes_and_coordinates.keys())[index_coordinate_start]
         index_coordinate_end = list(nodes_and_coordinates.values()).index(self.path.end_point)
         self.id_node_end = list(nodes_and_coordinates.keys())[index_coordinate_end]
-        """
+
+        #a, b = Graph_Collect.cost_path(G, 100000000002, 100000000016, VEHICLE_MASS)
+
         inicio = time.time()
-        route_1 = Heuristics.nearest_neighbor(G, H, 1000000006, 1000000006, self.vehicle_mass)
+        route_1 = Heuristics.nearest_neighbor(G, H, self.id_node_start, self.id_node_end, self.vehicle_mass)
         cost_total_1, paths_1 = Graph_Collect.sum_costs_route(G, H, route_1, VEHICLE_MASS)
         fim = time.time()
-        print("Total cost route BFS", route_1, cost_total_1)
-        print("time BFS (s)", fim - inicio)
-        """
+        print("Total cost route nearest", route_1, cost_total_1)
+        print("time nearest (s)", fim - inicio)
+
         inicio = time.time()
-        route_2 = Heuristics.closest_insertion(G, H, 1000000006, 1000000006)
+        route_2 = Heuristics.closest_insertion(G, H, self.id_node_start, self.id_node_end)
         cost_total_2, paths_2 = Graph_Collect.sum_costs_route(G, H, route_2, VEHICLE_MASS)
         fim = time.time()
         print("Total cost route closest insertion", route_2, cost_total_2)
         print("time closest insertion (s)", fim - inicio)
+
+        inicio = time.time()
+        route_GA = GA.GA(G, H, self.id_node_start, self.id_node_end, self.nodes_h)
+        fim = time.time()
+        cost_GA, paths_4 = Graph_Collect.sum_costs_route(G, H, route_GA, VEHICLE_MASS)
+        print("Total cost route GA", route_GA, cost_GA)
+        print("Time GA", fim - inicio)
+
+        for i in paths_2:
+            fig, ax = ox.plot_graph_route(G, i, route_linewidth=6, node_size=0, bgcolor='w')
+
         """
         inicio = time.time()
         cost_total_3, route_3, paths_3 = Heuristics.exact_method(G, H, 1000000006, 1000000006)
         fim = time.time()
         print("Total cost route exact method", route_3, cost_total_3)
         print("time exact method", fim - inicio)
-        
-        inicio = time.time()
-        route_GA = GA.GA(G, H, 1000000006, 1000000006, self.nodes_h)
-        fim = time.time()
-        cost_GA, paths_4 = Graph_Collect.sum_costs_route(G, H, route_GA, VEHICLE_MASS)
-        print("Total cost route GA", route_GA, cost_GA)
-        print("Time GA", fim - inicio)
         """
+
 
 if __name__ == '__main__':
     id_user1 = "000"
