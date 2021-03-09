@@ -8,84 +8,101 @@ from route import Heuristics, GA
 import time
 
 
-class Carrinheiro:
-    def __init__(self, id_user, date, vehicle_mass):
-        self.id_user = id_user
-        self.collection_day = date
-        self.vehicle_mass = vehicle_mass  # Kg
-        self.carrinheiro = User.get_user(id_user, DATABASE_DIRECTORY)
-        self.path = Path.Path(self.carrinheiro, date, DATABASE_DIRECTORY)
-        self.ad_weights = self.path.get_weight()
-        self.id_node_start = ''
-        self.id_node_end = ''
-        self.nodes_h = []
+def scenario_stop_points(path):
 
-    def main(self):
+    # get user stop points
+    stop_points = path.get_stop_points()
 
-        # get user stop points
-        stop_points = self.path.get_stop_points()
+    # download the osm file (scenario)
+    stop_points = OpenSteetMap.file_osm(MAPS_DIRECTORY, FILE_NAME_OSM, stop_points)
 
-        # download the osm file (scenario)
-        stop_points = OpenSteetMap.file_osm(MAPS_DIRECTORY, FILE_NAME_OSM, stop_points)
+    return stop_points
 
-        # download the GeoTiff file (scenario)
-        geotiff_name = GeoTiff.geotiff(MAPS_DIRECTORY, stop_points)
 
-        max_lat, min_lat, max_lon, min_lon = Coordinates.create_osmnx(stop_points)
+def graph_scenario(stop_points, geotiff_name, ad_weights):
 
-        # Scenario graph (paths are edges and junctions are nodes)
-        G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
-        G, nodes_and_coordinates, nodes_and_weights = Graph.configure_graph(G, geotiff_name, stop_points, self.vehicle_mass, self.ad_weights)
-        # print(nodes_and_coordinates, nodes_and_weights)
+    max_lat, min_lat, max_lon, min_lon = Coordinates.create_osmnx(stop_points)
 
-        # Graph with all collect points
-        H = Graph_Collect.create_graph_route(nodes_and_coordinates, nodes_and_weights)
-        self.nodes_h = list(nodes_and_coordinates.keys())
+    # Scenario graph (paths are edges and junctions are nodes)
+    G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
+    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph(G, geotiff_name, stop_points, VEHICLE_MASS,
+                                                                        ad_weights)
+    # print(nodes_and_coordinates, nodes_and_weights)
+    return G, nodes_coordinates, nodes_mass_increment
 
-        index_coordinate_start = list(nodes_and_coordinates.values()).index(self.path.start_point)
-        self.id_node_start = list(nodes_and_coordinates.keys())[index_coordinate_start]
-        index_coordinate_end = list(nodes_and_coordinates.values()).index(self.path.end_point)
-        self.id_node_end = list(nodes_and_coordinates.keys())[index_coordinate_end]
 
-        #a, b = Graph_Collect.cost_path(G, 100000000002, 100000000016, VEHICLE_MASS)
+def nearest_neighbor_path(G, H, node_source, node_target):
 
-        inicio = time.time()
-        route_1 = Heuristics.nearest_neighbor(G, H, self.id_node_start, self.id_node_end, self.vehicle_mass)
-        cost_total_1, paths_1 = Graph_Collect.sum_costs_route(G, H, route_1, VEHICLE_MASS)
-        fim = time.time()
-        print("Total cost route nearest", route_1, cost_total_1)
-        print("time nearest (s)", fim - inicio)
+    start = time.time()
+    route = Heuristics.nearest_neighbor(G, H, node_source, node_target, VEHICLE_MASS)
+    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS)
+    end = time.time()
+    print("Total cost route nearest", route, cost_total)
+    print("time nearest (s)", end - start)
 
-        inicio = time.time()
-        route_2 = Heuristics.closest_insertion(G, H, self.id_node_start, self.id_node_end)
-        cost_total_2, paths_2 = Graph_Collect.sum_costs_route(G, H, route_2, VEHICLE_MASS)
-        fim = time.time()
-        print("Total cost route closest insertion", route_2, cost_total_2)
-        print("time closest insertion (s)", fim - inicio)
+    return cost_total, paths
 
-        inicio = time.time()
-        route_GA = GA.GA(G, H, self.id_node_start, self.id_node_end, self.nodes_h)
-        fim = time.time()
-        cost_GA, paths_4 = Graph_Collect.sum_costs_route(G, H, route_GA, VEHICLE_MASS)
-        print("Total cost route GA", route_GA, cost_GA)
-        print("Time GA", fim - inicio)
 
-        for i in paths_2:
-            fig, ax = ox.plot_graph_route(G, i, route_linewidth=6, node_size=0, bgcolor='w')
+def closest_insertion_path(G, H, node_source, node_target):
+    start = time.time()
+    route = Heuristics.closest_insertion(G, H, node_source, node_target)
+    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS)
+    end = time.time()
+    print("Total cost route closest insertion", route, cost_total)
+    print("time closest insertion (s)", end - start)
 
-        """
-        inicio = time.time()
-        cost_total_3, route_3, paths_3 = Heuristics.exact_method(G, H, 1000000006, 1000000006)
-        fim = time.time()
-        print("Total cost route exact method", route_3, cost_total_3)
-        print("time exact method", fim - inicio)
-        """
+    return cost_total, paths
+
+
+def genetic_algorithm(G, H, node_source, node_target, nodes_coordinates):
+    nodes_h = list(nodes_coordinates.keys())
+    start = time.time()
+    route = GA.GA(G, H, node_source, node_target, nodes_h)
+    end = time.time()
+    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS)
+    print("Total cost route GA", route, cost_total)
+    print("Time GA", end - start)
+
+    return cost_total, paths
+
+
+def exact_method_path(G, H, node_source, node_target, nodes_coordinates):
+    start = time.time()
+    cost_total, route, paths = Heuristics.exact_method(G, H, node_source, node_target)
+    end = time.time()
+    print("Total cost route exact method", route, cost_total)
+    print("time exact method", end - start)
+    return cost_total, paths
+
+
+def carrinheiro(id_user, date):
+    user_carrinheiro = User.get_user(id_user, DATABASE_DIRECTORY)
+    path = Path.Path(user_carrinheiro, date, DATABASE_DIRECTORY)
+
+    stop_points = scenario_stop_points(path)
+
+    # download the GeoTiff file (scenario)
+    geotiff_name = GeoTiff.geotiff(MAPS_DIRECTORY, stop_points)
+
+    G, nodes_coordinates, nodes_mass_increment = graph_scenario(stop_points, geotiff_name, path.material_weights)
+
+    H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
+
+    index_coordinate_start = list(nodes_coordinates.values()).index(path.start_point)
+    node_source = list(nodes_coordinates.keys())[index_coordinate_start]
+    index_coordinate_end = list(nodes_coordinates.values()).index(path.end_point)
+    node_target = list(nodes_coordinates.keys())[index_coordinate_end]
+
+    cost_total, paths = closest_insertion_path(G, H, node_source, node_target)
+
+    for i in paths:
+        fig, ax = ox.plot_graph_route(G, i, route_linewidth=6, node_size=0, bgcolor='w')
 
 
 if __name__ == '__main__':
     id_user1 = "000"
     date = "25 01 2021"
-    scenario = Carrinheiro(id_user1, date, 110)
-    scenario.main()
+    carrinheiro(id_user1, date)
+
 
 
