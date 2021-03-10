@@ -97,16 +97,10 @@ def cost_path(G, source, target, vehicle_mass):
     # to the current weight of the vehicle
     G = Graph.update_weight(G, vehicle_mass)
 
-    #inicio = time.time()
-
     # finds the shortest path to the destination in the scenario graph
     #path = Heuristics.shortest_path_faster(G, source, target, 'weight')
     distance, path = Heuristics.bidirectional_dijkstra(G, source, target, 'weight')
     #path = nx.astar_path(G, source, target, weight='weight')
-
-    #distance = 0
-    #fim = time.time()
-    #print(fim - inicio)
 
     # cost to get to the destination:
     # the sum of the weight of all the edges from the path

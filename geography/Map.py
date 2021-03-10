@@ -56,9 +56,8 @@ def _geolocator(coordinate, name_project):
             if location.raw:
                 return location
         except AttributeError:
-            print(
-                "Error: The coordinates do not correspond to a valid location. It is necessary to be close to a road.")
-            # sys.exit()
+            #print(
+            #    "Error: The coordinates do not correspond to a valid location. It is necessary to be close to a road.")
             return None
         except:
             # print("Another exception")
@@ -93,7 +92,7 @@ def _osm_type(location):
     if osm_type is not None:
         return osm_type
     else:
-        print("Error: OSM Type does not exists")
+        #print("Error: OSM Type does not exists")
         sys.exit()
 
 
@@ -116,7 +115,7 @@ def _id_osm(location):
     if osm_id is not None:
         return osm_id
     else:
-        print("Error: OSM ID does not exists")
+        #print("Error: OSM ID does not exists")
         sys.exit()
 
 
@@ -509,8 +508,8 @@ def adjacent_nodes(coordinate):
             # returns the id of the OSM node
             return node_osm, location
 
-        else:
-            print("Error: only Open Street Map \'way\' and \'nodes\' are supported.")
+        # else:
+            # print("Error: only Open Street Map \'way\' and \'nodes\' are supported.")
 
     else:
         return None, None

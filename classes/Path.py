@@ -11,7 +11,7 @@ class Path:
         self.stop_points = []
         self.start_point = ()
         self.end_point = ()
-        self.weights = {}
+        self.material_weights = {}
         self.directory_file_json = dir_json # '../DB/'
         self.main()
 
@@ -57,7 +57,7 @@ class Path:
             amount = ads.get_amount()
             weight = ads.get_measure_unit()
             coordinates = ads.get_coordinates()
-            self.weights.update([(coordinates, (amount, weight))])
+            self.material_weights.update([(coordinates, (amount, weight))])
 
     def get_start_point(self):
         return self.start_point
@@ -71,8 +71,8 @@ class Path:
     def get_stop_points(self):
         return self.stop_points
 
-    def get_weight(self):
-        return self.weights
+    def get_material_weight(self):
+        return self.material_weights
 
     def main(self):
         self.set_start_point()

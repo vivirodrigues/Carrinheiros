@@ -1,6 +1,4 @@
 from geography import Download, Coordinates, Overpass
-import haversine as hs
-from haversine import Unit
 from Constants import *
 
 
@@ -83,7 +81,7 @@ def _search_coordinate(coordinates_list):
     return search_coordinate
 
 
-def _osm(coordinates_osm, directory, file_name):
+def _osm(coordinates_osm, file_name):
     """
     This function checks if a Open Street Map '.osm' file
     exists in a directory. If it not exists, this function
@@ -94,22 +92,20 @@ def _osm(coordinates_osm, directory, file_name):
                                     in this order:
                                     [min_lon, min_lat, max_lon, max_lat]
 
-    :param directory:               String
-
     :param file_name:               String
     """
     # it checks if file exists
     try:
-        with open(directory + file_name, 'r') as f:
+        with open(file_name, 'r') as f:
             scenario_osm = f.read()
             print("file exists")
     except IOError:
-        print(directory + file_name)
-        download_file = Download.download_osm(coordinates_osm, directory, file_name)
-        _osm(coordinates_osm, directory, file_name)
+        print(file_name)
+        download_file = Download.download_osm(coordinates_osm, file_name)
+        _osm(coordinates_osm, file_name)
 
 
-def file_osm(directory, file_name, coordinates_points):
+def file_osm(file_name, coordinates_points):
     """
     This function gets a list with tuples corresponding a geographic
     points. Each tuple has the coordinates (lat, lon) of the point.
@@ -117,8 +113,6 @@ def file_osm(directory, file_name, coordinates_points):
     inside. Besides, it checks if exists a Open Street Map '.osm' file
     in a directory. If it not exists, this function
     downloads the file.
-
-    :param directory:                       String
 
     :param file_name:                       String
 
@@ -131,20 +125,10 @@ def file_osm(directory, file_name, coordinates_points):
     :return:
     """
 
-    # validate coordinates points
-    # according to coverage area
-    coordinate_initial = (coordinates_points[0][1], coordinates_points[0][0])
-    for i in coordinates_points:
-        distance_node_initial = hs.haversine((i[1], i[0]), coordinate_initial, unit=Unit.METERS)
-        if distance_node_initial > COVERAGE_AREA:
-            print("The ad available in the", i, "coordinate is outside the coverage area.")
-            coordinates_points.remove(i)
-
     coordinates_list = Coordinates.coordinates_list_bbox(coordinates_points)
     coordinates_osm = Coordinates.coordinates_string(coordinates_list)
-    print(coordinates_osm)
-    _osm(coordinates_osm, directory, file_name)
-    return coordinates_points
+    # print(coordinates_osm)
+    _osm(coordinates_osm, file_name)
 
 
 if __name__ == "__main__":
@@ -152,7 +136,7 @@ if __name__ == "__main__":
                         (-22.818317, -47.083415), (-22.820244, -47.085422),
                         (-22.816008, -47.075614), (-22.823953, -47.087718)]
     dir_osm = '../data/maps/'
-    file_osm(dir_osm, 'map.osm', coordinates_path)
+    file_osm(dir_osm + 'map.osm', coordinates_path)
 
     coordinates_list = Coordinates.coordinates_list_bbox(coordinates_path)
     search_coord = _search_coordinate(coordinates_list)

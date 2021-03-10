@@ -33,7 +33,7 @@ def download_geotiff(directory, file_name):
         zip_ref.extractall(directory)
 
 
-def download_osm(coordinates_osm, directory, file_name):
+def download_osm(coordinates_osm, file_name):
     """
     :param coordinates_osm  Sting
                             bbox=left,bottom,right,top
@@ -46,30 +46,28 @@ def download_osm(coordinates_osm, directory, file_name):
                             Name of the file that must be downloaded.
                             Ex: 'map.osm' or 'map'
 
-    :param directory:       folder that must be used to save the
-                            downloaded file.
     """
     name_len = len(file_name)
     file_extension = file_name[name_len-4] + file_name[name_len-3] + file_name[name_len-2] + file_name[name_len-1]
 
-    print("Downloading: ", coordinates_osm)
+    # print("Downloading: ", coordinates_osm)
     url = "http://overpass.openstreetmap.ru/cgi/xapi_meta?*[bbox={}]".format(coordinates_osm)
     r = requests.get(url, allow_redirects=True)
     if file_extension == '.osm':
-        with open(directory + file_name, 'w') as fd:
+        with open(file_name, 'w') as fd:
             fd.write(r.text)
     else:
-        with open(directory + file_name + '.osm', 'w') as fd:
+        with open(file_name + '.osm', 'w') as fd:
             fd.write(r.text)
-    print("Downloaded File:", file_name, "\nCoordinates", coordinates_osm)
+    # print("Downloaded File:", file_name, "\nCoordinates", coordinates_osm)
 
 
 if __name__ == "__main__":
     coordinates_osm = str(-47.246313) + "," + str(-23.0612161) + "," + str(-47.239999) + "," + str(-23.0609999)
-    name_file = "map.osm"
-    directory = '../geography/'
-    download_osm(coordinates_osm, directory, name_file)
+    # name_file = "map.osm"
+    # directory = '../geography/'
+    #download_osm(coordinates_osm, directory + name_file)
 
-    name_file = "22S48_ZN"
-    directory = '../geography/'
+    name_file = "01S495ZN"
+    directory = '../data/maps/'
     download_geotiff(directory, name_file)

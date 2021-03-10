@@ -358,7 +358,8 @@ def max_speed_factor(weight, speed):
 
     :return:            float
     """
-
+    if type(speed) == list:
+        speed = max(speed)
     speed = float(speed)
 
     if speed < 21:

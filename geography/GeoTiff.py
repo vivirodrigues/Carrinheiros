@@ -87,11 +87,10 @@ def _geotiff(directory, file_names):
 
             # it checks if the file exists
             with open(directory + file_names[i], 'r') as f:
-
+                pass
                 # self.scenario_geotiff = f.read()
                 print(file_names[i], " file exists")
         except IOError:
-
             # if it does not exist, it downloads the file
             print(file_names[i])
             download_file = Download.download_geotiff(directory, file_names[i])
@@ -121,7 +120,7 @@ def join_geo(directory, geo_directory_and_file_names, name_mosaic_file='out.tif'
         src = rasterio.open(fp)
         src_files_to_mosaic.append(src)
     mosaic, out_trans = merge(src_files_to_mosaic)
-    show(mosaic, cmap='terrain')
+    #show(mosaic, cmap='terrain')
     out_meta = src.meta.copy()
     out_meta.update({"driver": "GTiff",
                      "height": mosaic.shape[1],
@@ -156,7 +155,8 @@ def verify_geo_file_coordinates(directory, file_name):
     path_dir = str(directory) + str(file_name) + '.tif'
     ds = gdal.Open(path_dir, gdal.GA_ReadOnly)
     if not ds:
-        print("Error: GeoTiff not found")
+        pass
+        #print("Error: GeoTiff not found")
     else:
         width = ds.RasterXSize
         height = ds.RasterYSize

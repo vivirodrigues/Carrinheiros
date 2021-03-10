@@ -84,8 +84,27 @@ def edges_net(name_net_xml):
     edges_dict = {}
     for i in edges:
         if i.attributes['id'].value[0] != ':':
-            edges_dict.update([((i.attributes['from'].value, i.attributes['to'].value), i.attributes['id'].value)])
+            edges_dict.update([((str(i.attributes['from'].value), str(i.attributes['to'].value)), str(i.attributes['id'].value))])
     return edges_dict
+
+
+def nodes_to_edges(nodes, name_net_xml):
+    """
+
+    :param nodes:       list
+                        list with id of nodes
+    :return:            list
+                        id of edges
+    """
+    edges_dict = edges_net(name_net_xml)
+    # print(edges_dict)
+
+    edges_list = []
+    for i in range(len(nodes)-1):
+        print(nodes[i], nodes[i+1], edges_dict.get((str(nodes[i]), str(nodes[i+1]))))
+        edges_list.append(edges_dict.get((str(nodes[i]), str(nodes[i+1]))))
+
+    return edges_list
 
 
 if __name__ == '__main__':

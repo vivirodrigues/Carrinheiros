@@ -28,6 +28,7 @@ def elements_json_overpass(overpass_query):
     elements = data.get("elements")
     return elements
 
+
 def overpy_response(overpy_query):
     """
     This function gets the response of the Python Overpass

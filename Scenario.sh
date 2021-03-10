@@ -1,12 +1,19 @@
 #!/bin/bash
 
-dirOSM="../maps/"
-dirGeo="../GEOTIFF/"
-dirModels="../models/"
-dirDB="../models/DB/"
+id="000"
+date="25 01 2021"
+dirMaps="data/maps"
 
-python3 Scenario.py --dirModels=$dirModels --dirGeo=$dirGeo --dirOSM=$dirOSM --dirDB=$dirDB
+echo "............script started............"
 
-gdal_translate -of GTiff -ot Int16 -co TFW=YES $dirGeo/22S48_ZN.tif ../geography/map.tif
+# shellcheck disable=SC2207
+result=$(python3 Carrinheiro.py --idUser=$id --date="$date")
 
-netconvert --osm-files ../geography/map.osm --heightmap.geotiff ../geography/map.tif -o ../geography/map.net.xml
+echo "---------------"
+
+# shellcheck disable=SC1073
+echo "$result"
+
+#gdal_translate -of GTiff -ot Int16 -co TFW=YES $dirMaps/22S48_ZN.tif $dirMaps/map.tif
+
+#netconvert --osm-files $dirMaps/map.osm --heightmap.geotiff $dirMaps/map.tif -o $dirMaps/map.net.xml
