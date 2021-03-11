@@ -43,7 +43,7 @@ def graph_scenario(stop_points, geotiff_name, ad_weights):
 
     # Scenario graph (paths are edges and junctions are nodes)
     G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
-    ox.plot_graph(G)
+    # ox.plot_graph(G)
     G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph(G, geotiff_name, stop_points, VEHICLE_MASS,
                                                                         ad_weights)
     # print(nodes_and_coordinates, nodes_and_weights)

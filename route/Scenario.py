@@ -9,10 +9,9 @@ from simulation import Map_osm
 
 
 def add_collect_points(G, collect_points, ad_weights):
-
     id_new_node = 100000000000
     id_new_edge = 100000
-    node1_added = id_new_node + 2
+    node1_added = id_new_node + 3
 
     nodes_mass_increment = {}
     nodes_collect_coordinates = {}
@@ -49,7 +48,6 @@ def add_collect_points(G, collect_points, ad_weights):
 
             # if the adjacent nodes are not in the graph
             if keys[0] not in G or keys[1] not in G:
-
                 coordinates, keys = nearest_edge(G, i, keys)
 
             line = LineString(coordinates)
@@ -80,9 +78,11 @@ def add_collect_points(G, collect_points, ad_weights):
                     second_node = keys[0]
 
                 highway = define_highway(G, first_node, second_node)
-                G = add_edges(G, i, first_node, second_node, id_new_node, len_first_edge, len_second_edge, nearest_node, highway)
+                G = add_edges(G, i, first_node, second_node, id_new_node, len_first_edge, len_second_edge, nearest_node,
+                              highway)
                 G = delete_edge(G, first_node, second_node)
-                osm_tag = simulation_edit_map(osm_tag, i, id_new_node, node1_added, id_new_edge, first_node, second_node,
+                osm_tag = simulation_edit_map(osm_tag, i, id_new_node, node1_added, id_new_edge, first_node,
+                                              second_node,
                                               nearest_node)
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]
@@ -167,7 +167,6 @@ def define_highway(G, first_node, second_node):
 
 
 def add_edges(G, i, first_id, second_id, id_new_node, len_first_edge, len_second_edge, nearest_node, highway):
-
     # create the edge of the first adjacent node
     # to the closest node inside the way
     G.add_edge(id_new_node + 1, first_id, length=len_first_edge, highway=highway, oneway='false')
@@ -186,7 +185,6 @@ def add_edges(G, i, first_id, second_id, id_new_node, len_first_edge, len_second
 
 
 def delete_edge(G, first_id, second_id):
-
     # removes the edge connecting the two adjacent nodes
     e = (first_id, second_id)
 
@@ -199,22 +197,77 @@ def delete_edge(G, first_id, second_id):
 
 
 def simulation_edit_map(osm_tag, i, id_new_node, first_node, id_new_edge, first_id, second_id, nearest_node):
-
     # it is necessary because every first node id is zero (?)
     if str(id_new_node) == str(first_node):
         osm_tag = Map_osm.create_node(osm_tag, str(0), str(0), str(0))
 
     osm_tag = Map_osm.create_node(osm_tag, str(id_new_node), str(i[0]), str(i[1]))
-
     osm_tag = Map_osm.create_node(osm_tag, str(id_new_node + 1), str(nearest_node[0]), str(nearest_node[1]))
+    # osm_tag = Map_osm.create_node(osm_tag, str(id_new_node + 2), str(i[0]), str(i[1]))
 
     osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 1), str(first_id), str(id_new_node + 1))
     osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 2), str(id_new_node + 1), str(second_id))
     osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 3), str(second_id), str(id_new_node + 1))
     osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 4), str(id_new_node), str(id_new_node + 1))
     osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 5), str(id_new_node + 1), str(id_new_node))
+    # osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 6), str(id_new_node), str(id_new_node + 2))
 
     return osm_tag
+
+
+def simulation_edit_graph(G, adjacent_nodes):
+
+    tree = Map_osm.parse_file_tree(MAPS_DIRECTORY + FILE_NAME_OSM)
+
+    dict_nodes_coords = Map_osm.node_coordinates(tree)
+
+    G_adjacents = G.succ if G.is_directed() else G.adj
+
+    nodes_added = []
+
+    nodes = Map_osm.get_nodes(NET)
+
+    for i in nodes:
+        try:
+            adj = list(G_adjacents[int(i)].keys())
+        except:
+            # if node does not exists in G
+            coords = dict_nodes_coords.get(int(i))  # lat, lon
+            G = _add_node(G, coords, int(i))
+            nodes_added.append(int(i))
+
+    # adding edges
+    for i in nodes_added:
+        if adjacent_nodes.get(i) is not None and len(adjacent_nodes.get(i)) > 0:
+            for j in adjacent_nodes.get(i):
+                e = (i, j)
+                if G.has_edge(*e):
+                    pass
+                else:
+                    len_edge = calculate_distance(dict_nodes_coords.get(i), dict_nodes_coords.get(j))
+                    G.add_edge(i, j, length=len_edge, highway='footway', oneway='false')
+                    # print("Adding edge between", i, j)
+
+    # deleting edges
+    for i in nodes:
+        if G_adjacents[int(i)].keys() is not None:
+            adj_G = set(G_adjacents[int(i)].keys())
+        else:
+            adj_G = set()
+        if adjacent_nodes.get(int(i)) is not None:
+            adj_net = set(adjacent_nodes.get(int(i)))
+        else:
+            adj_net = set()
+
+
+        edges_to_delete = adj_G - adj_net
+        #
+        if not None and len(edges_to_delete) > 0:
+            for j in edges_to_delete:
+                #print("deleting", i, j)
+                G = delete_edge(G, i, j)
+
+    return G
 
 
 def calculate_distance(coordinate_from, coordinate_to):
@@ -223,7 +276,6 @@ def calculate_distance(coordinate_from, coordinate_to):
 
 def _add_node(G, tuple_coordinates, id_node):
     G.add_node(id_node, x=tuple_coordinates[1], y=tuple_coordinates[0])
-    # print("Add node: ", tuple_coordinates[1], tuple_coordinates[0])
     return G
 
 
@@ -236,7 +288,7 @@ def cut(line, distance):
         pd = line.project(Point(p))
         if pd == distance:
             return [
-                LineString(coords[:i+1]),
+                LineString(coords[:i + 1]),
                 LineString(coords[i:])]
         if pd > distance:
             cp = line.interpolate(distance)
@@ -250,12 +302,13 @@ if __name__ == '__main__':
 
     stop_points = [(-22.820204, -47.085525), (-22.825029, -47.068495),
                    (-22.824376, -47.070952), (-22.82503, -47.07410),
-                   (-22.82504, -47.07730), (-24.992554, -47.069115)]# (-22.816008, -47.075614)]
+                   (-22.82504, -47.07730), (-24.992554, -47.069115)]  # (-22.816008, -47.075614)]
     # fig1, ax1 = ox.plot_graph(G, node_size=5, edge_color='#333333', bgcolor='k')
     # Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test1')
-    weigths = {(-22.816639, -47.074891): (50, 'Kg'), (-22.818317, -47.083415): (30, 'Kg'), (-22.820244, -47.085422): (15, 'Kg'), (-22.823953, -47.087718): (12, 'Kg')}
+    weigths = {(-22.816639, -47.074891): (50, 'Kg'), (-22.818317, -47.083415): (30, 'Kg'),
+               (-22.820244, -47.085422): (15, 'Kg'), (-22.823953, -47.087718): (12, 'Kg')}
     G, nodes_collect_and_coordinates, nodes_collect_and_weights = add_collect_points(G, stop_points, weigths)
-    G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
+    G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY + '22S48_ZN.tif')
     G = Graph.edge_grades(G)
     Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test.graphml')
     # Graph.plot_graph(G)

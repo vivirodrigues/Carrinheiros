@@ -420,7 +420,7 @@ def comparar_paths(G):
 
 if __name__ == '__main__':
     G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
-    G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
+    G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY + '22S48_ZN.tif')
     G = Graph.edge_grades(G)
     G = Graph.surface(G, '../' + MAPS_DIRECTORY, FILE_NAME_OSM)
     G = Graph.hypotenuse(G)

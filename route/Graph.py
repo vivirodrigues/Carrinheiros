@@ -14,7 +14,7 @@ from collections import Counter
 from route import Graph_Collect
 
 
-def set_node_elevation(G, directory, name_file_geotiff):
+def set_node_elevation(G, name_file_geotiff):
     """
     Add `elevation` attribute to each node in meters.
     Uses elevation data by geotiff file by default
@@ -51,7 +51,9 @@ def set_node_elevation(G, directory, name_file_geotiff):
     # get elevation value from geotiff file,
     # based on x,y coordinate
     for i in range(0, len(x)):
-        elevation.append(GeoTiff.coordinate_pixel(directory + name_file_geotiff, longitudes[i], latitudes[i]))
+        if (GeoTiff.coordinate_pixel(name_file_geotiff, longitudes[i], latitudes[i])) is None:
+            print(":O")
+        elevation.append(GeoTiff.coordinate_pixel(name_file_geotiff, longitudes[i], latitudes[i]))
 
     # create a pandas series with the id of the node and corresponding elevation values
     pd_elevation = pd.Series(elevation, index=ids)
@@ -505,7 +507,7 @@ def _weight(G, weight):
 def configure_graph(G, geotiff_name, stop_points, vehicle_mass, ad_weights):
 
     G, nodes_and_coordinates, nodes_and_weights = Scenario.add_collect_points(G, stop_points, ad_weights)
-    G = set_node_elevation(G, MAPS_DIRECTORY, geotiff_name)
+    G = set_node_elevation(G, MAPS_DIRECTORY + geotiff_name)
     G = edge_grades(G)
     G = surface(G, MAPS_DIRECTORY, FILE_NAME_OSM)
     G = hypotenuse(G)
@@ -518,9 +520,29 @@ def configure_graph(G, geotiff_name, stop_points, vehicle_mass, ad_weights):
     return G, nodes_and_coordinates, nodes_and_weights
 
 
+def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, nodes_adjacent_xml):
+    save_graph_file(G, '', 'test1')
+    G, nodes_and_coordinates, nodes_and_weights = Scenario.add_collect_points(G, stop_points, ad_weights)
+    save_graph_file(G, '', 'test2')
+    G = Scenario.simulation_edit_graph(G, nodes_adjacent_xml)
+    save_graph_file(G, '', 'test3')
+    G = set_node_elevation(G, geotiff_name)
+    save_graph_file(G, '', 'test4')
+    G = edge_grades(G)
+    G = surface(G, MAPS_DIRECTORY, FILE_NAME_OSM)
+    G = hypotenuse(G)
+    G = maxspeed(G)
+    G = update_weight(G, VEHICLE_MASS)
+
+
+    plot_graph(G)
+
+    return G, nodes_and_coordinates, nodes_and_weights
+
+
 if __name__ == '__main__':
     G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
-    G = set_node_elevation(G, '../' + MAPS_DIRECTORY, '22S48_ZN.tif')
+    G = set_node_elevation(G, '../' + MAPS_DIRECTORY + '22S48_ZN.tif')
     G = edge_grades(G)
     nodes = list(G.nodes)
     G = surface(G, '../' + MAPS_DIRECTORY, FILE_NAME_OSM)
