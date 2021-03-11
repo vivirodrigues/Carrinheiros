@@ -1,4 +1,4 @@
-MAPS_DIRECTORY = '../data/maps/'
+MAPS_DIRECTORY = 'data/maps/'
 DATABASE_DIRECTORY = 'data/DB/'
 FILE_NAME_OSM = 'map.osm'
 GRAPH_NAME = 'map'
@@ -16,4 +16,5 @@ CROSSOVER_PERCENTAGE = 80 # must be an even number
 LIMIT_ITERATION = 15
 
 ######## Simulation
+SIMULATION = False
 NET = 'map.net.xml'

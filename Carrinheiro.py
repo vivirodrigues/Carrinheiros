@@ -117,8 +117,8 @@ def carrinheiro(id_user, date):
 
     cost_total, paths = closest_insertion_path(G, H, node_source, node_target)
 
-    #for i in paths:
-    #    fig, ax = ox.plot_graph_route(G, i, route_linewidth=6, node_size=0, bgcolor='w')
+    for i in paths:
+        fig, ax = ox.plot_graph_route(G, i, route_linewidth=6, node_size=0, bgcolor='w')
 
     return paths
 

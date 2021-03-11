@@ -5,24 +5,45 @@ from route import Graph
 import osmnx as ox
 from Constants import *
 from shapely.geometry import Point, LineString
-from simulation import Map_osm
+from simulation.Map_osm import create_node, create_way, parse_file_tree, node_coordinates, parse_file_minidom, get_nodes, edges_net, adjacent_nodes
 
 
 def add_collect_points(G, collect_points, ad_weights):
-    id_new_node = 100000000000
-    id_new_edge = 100000
-    node1_added = id_new_node + 3
+
+    id_node_collect = 100000000000
+    id_node_collect2 = 200000000000
+    id_nearest_node = 300000000000
+
+    id_edge_collect1 = 10000000000
+    id_edge_collect2 = 20000000000
+    id_edge_collect3 = 30000000000
+    id_1adjacent_street1 = 40000000000
+    id_1adjacent_street2 = 50000000000
+    id_2adjacent_street1 = 60000000000
+    id_2adjacent_street2 = 70000000000
+
+    node1_added = id_node_collect + 1
 
     nodes_mass_increment = {}
     nodes_collect_coordinates = {}
 
-    tree = Map_osm.parse_file_tree(MAPS_DIRECTORY + FILE_NAME_OSM)
+    tree = parse_file_tree(MAPS_DIRECTORY + FILE_NAME_OSM)
     osm_tag = tree.getroot()
+    dict_nodes_coords = node_coordinates(tree)
 
     for i in collect_points:
 
-        id_new_node += 2
-        id_new_edge += 6
+        id_node_collect += 1
+        id_node_collect2 += 1
+        id_nearest_node += 1
+
+        id_edge_collect1 += 1
+        id_edge_collect2 += 1
+        id_edge_collect3 += 1
+        id_1adjacent_street1 += 1
+        id_1adjacent_street2 += 1
+        id_2adjacent_street1 += 1
+        id_2adjacent_street2 += 1
 
         weight = 0
 
@@ -62,10 +83,10 @@ def add_collect_points(G, collect_points, ad_weights):
                 nearest_node = first_edge[1]
 
                 # create a node with collect point coordinates
-                G = _add_node(G, i, id_new_node)
+                G = _add_node(G, i, id_node_collect)
 
                 # create the closest node inside the way
-                G = _add_node(G, nearest_node, id_new_node + 1)
+                G = _add_node(G, nearest_node, id_nearest_node)
 
                 len_first_edge = calculate_distance(first_edge[0], first_edge[1])
                 len_second_edge = calculate_distance(second_edge[0], second_edge[1])
@@ -78,16 +99,59 @@ def add_collect_points(G, collect_points, ad_weights):
                     second_node = keys[0]
 
                 highway = define_highway(G, first_node, second_node)
-                G = add_edges(G, i, first_node, second_node, id_new_node, len_first_edge, len_second_edge, nearest_node,
-                              highway)
+
+                # edge between node collect to nearest node dividing the adjacent street
+                len_edge = calculate_distance(i, nearest_node)
+                G.add_edge(id_node_collect, id_nearest_node, length=len_edge, highway='footway', oneway='false')
+                G.add_edge(id_nearest_node, id_node_collect, length=len_edge, highway='footway', oneway='false')
+
+                # create the edge of the first adjacent node
+                # to the closest node inside the way
+                G.add_edge(id_nearest_node, first_node, length=len_first_edge, highway=highway, oneway='false')
+                G.add_edge(first_node, id_nearest_node, length=len_first_edge, highway=highway, oneway='false')
+                e = (id_nearest_node, first_node)
+
+                # create the edge of the second adjacent node
+                # to the closest node inside the way
+                G.add_edge(id_nearest_node, second_node, length=len_second_edge, highway=highway, oneway='false')
+                G.add_edge(second_node, id_nearest_node, length=len_second_edge, highway=highway, oneway='false')
+
                 G = delete_edge(G, first_node, second_node)
-                osm_tag = simulation_edit_map(osm_tag, i, id_new_node, node1_added, id_new_edge, first_node,
-                                              second_node,
-                                              nearest_node)
+
+                ################ SIMULATION
+                if SIMULATION == True:
+
+                    if int(id_node_collect) in list(dict_nodes_coords.keys()):
+                        # if the data is already in the xml
+                        pass
+
+                    else:
+
+                        # it is necessary because every first node id is zero (?)
+                        if str(id_node_collect) == str(node1_added):
+                            osm_tag = create_node(osm_tag, str(0), str(0), str(0))
+
+                        osm_tag = create_node(osm_tag, str(id_node_collect), str(i[0]), str(i[1]))
+                        osm_tag = create_node(osm_tag, str(id_node_collect2), str(i[0]), str(i[1] + 0.00001))
+                        osm_tag = create_node(osm_tag, str(id_nearest_node), str(nearest_node[0]), str(nearest_node[1]))
+
+                        # edges between node collect to nearest node dividing the adjacent street
+                        osm_tag = create_way(osm_tag, str(id_edge_collect1), str(id_nearest_node), str(id_node_collect))
+                        osm_tag = create_way(osm_tag, str(id_edge_collect2), str(id_node_collect), str(id_nearest_node))
+                        osm_tag = create_way(osm_tag, str(id_edge_collect3), str(id_node_collect), str(id_node_collect2))
+
+                        # edges between nearest node and first id node
+                        osm_tag = create_way(osm_tag, str(id_1adjacent_street1), str(first_node), str(id_nearest_node))
+                        osm_tag = create_way(osm_tag, str(id_1adjacent_street2), str(id_nearest_node), str(first_node))
+
+                        # edges between nearest node and second id node
+                        osm_tag = create_way(osm_tag, str(id_2adjacent_street1), str(id_nearest_node), str(second_node))
+                        osm_tag = create_way(osm_tag, str(id_2adjacent_street2), str(second_node), str(id_nearest_node))
+
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]
-                nodes_mass_increment.update([(id_new_node, weight)])
-                nodes_collect_coordinates.update([(id_new_node, i)])
+                nodes_mass_increment.update([(id_node_collect, weight)])
+                nodes_collect_coordinates.update([(id_node_collect, i)])
 
             # the distance between edge and the collect point is 0
             # so we get the nearest node to be the point
@@ -166,24 +230,6 @@ def define_highway(G, first_node, second_node):
     return highway
 
 
-def add_edges(G, i, first_id, second_id, id_new_node, len_first_edge, len_second_edge, nearest_node, highway):
-    # create the edge of the first adjacent node
-    # to the closest node inside the way
-    G.add_edge(id_new_node + 1, first_id, length=len_first_edge, highway=highway, oneway='false')
-    G.add_edge(first_id, id_new_node + 1, length=len_first_edge, highway=highway, oneway='false')
-
-    # create the edge of the second adjacent node
-    # to the closest node inside the way
-    G.add_edge(id_new_node + 1, second_id, length=len_second_edge, highway=highway, oneway='false')
-    G.add_edge(second_id, id_new_node + 1, length=len_second_edge, highway=highway, oneway='false')
-
-    len_edge = calculate_distance(i, nearest_node)
-    G.add_edge(id_new_node, id_new_node + 1, length=len_edge, highway='footway', oneway='false')
-    G.add_edge(id_new_node + 1, id_new_node, length=len_edge, highway='footway', oneway='false')
-
-    return G
-
-
 def delete_edge(G, first_id, second_id):
     # removes the edge connecting the two adjacent nodes
     e = (first_id, second_id)
@@ -196,36 +242,20 @@ def delete_edge(G, first_id, second_id):
     return G
 
 
-def simulation_edit_map(osm_tag, i, id_new_node, first_node, id_new_edge, first_id, second_id, nearest_node):
-    # it is necessary because every first node id is zero (?)
-    if str(id_new_node) == str(first_node):
-        osm_tag = Map_osm.create_node(osm_tag, str(0), str(0), str(0))
+def simulation_edit_graph(G):
 
-    osm_tag = Map_osm.create_node(osm_tag, str(id_new_node), str(i[0]), str(i[1]))
-    osm_tag = Map_osm.create_node(osm_tag, str(id_new_node + 1), str(nearest_node[0]), str(nearest_node[1]))
-    # osm_tag = Map_osm.create_node(osm_tag, str(id_new_node + 2), str(i[0]), str(i[1]))
+    dict_edges_net = edges_net(NET)
+    nodes_adjacent_xml = adjacent_nodes(dict_edges_net)
 
-    osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 1), str(first_id), str(id_new_node + 1))
-    osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 2), str(id_new_node + 1), str(second_id))
-    osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 3), str(second_id), str(id_new_node + 1))
-    osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 4), str(id_new_node), str(id_new_node + 1))
-    osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 5), str(id_new_node + 1), str(id_new_node))
-    # osm_tag = Map_osm.create_way(osm_tag, str(id_new_edge + 6), str(id_new_node), str(id_new_node + 2))
+    tree = parse_file_tree(MAPS_DIRECTORY + FILE_NAME_OSM)
 
-    return osm_tag
-
-
-def simulation_edit_graph(G, adjacent_nodes):
-
-    tree = Map_osm.parse_file_tree(MAPS_DIRECTORY + FILE_NAME_OSM)
-
-    dict_nodes_coords = Map_osm.node_coordinates(tree)
+    dict_nodes_coords = node_coordinates(tree)
 
     G_adjacents = G.succ if G.is_directed() else G.adj
 
     nodes_added = []
 
-    nodes = Map_osm.get_nodes(NET)
+    nodes = get_nodes(NET)
 
     for i in nodes:
         try:
@@ -238,15 +268,14 @@ def simulation_edit_graph(G, adjacent_nodes):
 
     # adding edges
     for i in nodes_added:
-        if adjacent_nodes.get(i) is not None and len(adjacent_nodes.get(i)) > 0:
-            for j in adjacent_nodes.get(i):
+        if nodes_adjacent_xml.get(i) is not None and len(nodes_adjacent_xml.get(i)) > 0:
+            for j in nodes_adjacent_xml.get(i):
                 e = (i, j)
                 if G.has_edge(*e):
                     pass
                 else:
                     len_edge = calculate_distance(dict_nodes_coords.get(i), dict_nodes_coords.get(j))
                     G.add_edge(i, j, length=len_edge, highway='footway', oneway='false')
-                    # print("Adding edge between", i, j)
 
     # deleting edges
     for i in nodes:
@@ -254,17 +283,15 @@ def simulation_edit_graph(G, adjacent_nodes):
             adj_G = set(G_adjacents[int(i)].keys())
         else:
             adj_G = set()
-        if adjacent_nodes.get(int(i)) is not None:
-            adj_net = set(adjacent_nodes.get(int(i)))
+        if nodes_adjacent_xml.get(int(i)) is not None:
+            adj_net = set(nodes_adjacent_xml.get(int(i)))
         else:
             adj_net = set()
 
 
         edges_to_delete = adj_G - adj_net
-        #
         if not None and len(edges_to_delete) > 0:
             for j in edges_to_delete:
-                #print("deleting", i, j)
                 G = delete_edge(G, i, j)
 
     return G

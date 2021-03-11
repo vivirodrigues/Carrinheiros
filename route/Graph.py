@@ -11,6 +11,7 @@ from haversine import Unit
 from route import Scenario
 import xml.dom.minidom
 from collections import Counter
+from simulation import Main
 from route import Graph_Collect
 
 
@@ -520,22 +521,19 @@ def configure_graph(G, geotiff_name, stop_points, vehicle_mass, ad_weights):
     return G, nodes_and_coordinates, nodes_and_weights
 
 
-def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, nodes_adjacent_xml):
-    save_graph_file(G, '', 'test1')
+def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights):
     G, nodes_and_coordinates, nodes_and_weights = Scenario.add_collect_points(G, stop_points, ad_weights)
-    save_graph_file(G, '', 'test2')
-    G = Scenario.simulation_edit_graph(G, nodes_adjacent_xml)
-    save_graph_file(G, '', 'test3')
+    Main.netconvert_geotiff(MAPS_DIRECTORY + FILE_NAME_OSM, MAPS_DIRECTORY + 'out.tif', NET)
+    G = Scenario.simulation_edit_graph(G)
     G = set_node_elevation(G, geotiff_name)
-    save_graph_file(G, '', 'test4')
     G = edge_grades(G)
     G = surface(G, MAPS_DIRECTORY, FILE_NAME_OSM)
     G = hypotenuse(G)
     G = maxspeed(G)
     G = update_weight(G, VEHICLE_MASS)
 
-
-    plot_graph(G)
+    save_graph_file(G, MAPS_DIRECTORY, 'map')
+    #plot_graph(G)
 
     return G, nodes_and_coordinates, nodes_and_weights
 
