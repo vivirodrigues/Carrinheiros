@@ -2,7 +2,7 @@ from __future__ import division
 import os
 import sys
 import subprocess
-import signal
+import random
 import socket
 import threading
 import time
@@ -210,10 +210,9 @@ def create_route(stop_points, material_weights):
     name_file_net = 'map.net.xml'
     sumo_config = "map.sumocfg"
     geotiff_name_out = Constants.MAPS_DIRECTORY + 'out.tif'
-    osm_file_name = Constants.MAPS_DIRECTORY + Constants.FILE_NAME_OSM
 
     # download the osm file (scenario)
-    OpenSteetMap.file_osm(osm_file_name, stop_points)
+    osm_file_name = OpenSteetMap.file_osm(Constants.MAPS_DIRECTORY, stop_points)
 
     # download the GeoTiff file (scenario)
     geotiff_name = GeoTiff.geotiff(Constants.MAPS_DIRECTORY, stop_points)
@@ -229,7 +228,7 @@ def create_route(stop_points, material_weights):
     # Scenario graph (paths are edges and junctions are nodes)
     G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
 
-    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights)
+    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights, osm_file_name)
 
     H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
 
@@ -261,19 +260,14 @@ def main():
 
     material_weights = [(15, 'Kg'), (52, 'Kg'), (10, 'Kg'), (34, 'Kg'), (17, 'Kg'), (99, 'Kg')]
 
+    a = random.seed(1973272912)
+    mu = -48.4790
+    sigma = 0.001 # standard deviation
+    print(random.gauss(mu, sigma))
 
+    # paths = create_route(stop_points, material_weights)
 
-    paths = create_route(stop_points, material_weights)
-
-    #netconvert_geotiff(Constants.MAPS_DIRECTORY + Constants.FILE_NAME_OSM, Constants.MAPS_DIRECTORY + '01S495ZN.tif', name_file_net)
-
-
-
-
-
-    #print(sumo_route)
-
-    #consumption = start_simulation("sumo", sumo_config, "output.xml", sumo_route)
+    # consumption = start_simulation("sumo", sumo_config, "output.xml", sumo_route)
 
 
 if __name__ == "__main__":
