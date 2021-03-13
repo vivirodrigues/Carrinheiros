@@ -17,7 +17,6 @@ from simulation import Map_osm
 import Carrinheiro
 import osmnx as ox
 
-
 if 'SUMO_HOME' in os.environ:
     tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
     sys.path.append(tools)
@@ -99,10 +98,10 @@ def run(route):
     traci.route.add("path", route)
     traci.vehicle.add("carrinheiro", "path")
     traci.vehicle.setParameter("carrinheiro", "carFollowModel", "KraussPS")
-    traci.vehicle.setVehicleClass("carrinheiro", "pedestrian")
+    traci.vehicle.setVehicleClass("carrinheiro", "Carrinheiro")
     traci.vehicle.setShapeClass("carrinheiro", "pedestrian")
     traci.vehicle.setMaxSpeed("carrinheiro", 1)  # aprox 8 km/h
-    traci.vehicle.setLateralAlignment("carrinheiro", "right") # or "nice"
+    # traci.vehicle.setLateralAlignment("carrinheiro", "right")  # or "nice"
 
     while step == 1 or traci.simulation.getMinExpectedNumber() > 0:
 
@@ -200,7 +199,8 @@ def geotiff_transformation(name_file_in, name_file_out):
 
 
 def netconvert_geotiff(name_file_osm, name_file_geotiff, name_file_output):
-    netconvert_command = "netconvert --osm-files " + name_file_osm + " --heightmap.geotiff " + name_file_geotiff + " -o "+ name_file_output
+    netconvert_command = "netconvert --osm-files " + name_file_osm + " --heightmap.geotiff " + name_file_geotiff + \
+                         + " -o " + name_file_output
     process_netconvert = subprocess.Popen(netconvert_command.split(), stdout=subprocess.PIPE)
     output, error = process_netconvert.communicate()
 
@@ -214,6 +214,9 @@ def create_route(stop_points, material_weights):
     # download the osm file (scenario)
     osm_file_name = OpenSteetMap.file_osm(Constants.MAPS_DIRECTORY, stop_points)
 
+    if Constants.BIDIRECTIONAL is True:
+        Map_osm.bidirectional_ways(osm_file_name)
+
     # download the GeoTiff file (scenario)
     geotiff_name = GeoTiff.geotiff(Constants.MAPS_DIRECTORY, stop_points)
 
@@ -221,21 +224,23 @@ def create_route(stop_points, material_weights):
 
     geotiff_transformation(geotiff_name, geotiff_name_out)
 
-    dict_edges_net = Map_osm.edges_net(name_file_net)
-
     max_lat, min_lat, max_lon, min_lon = Coordinates.create_osmnx(stop_points)
 
     # Scenario graph (paths are edges and junctions are nodes)
     G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
 
-    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights, osm_file_name)
-
+    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points,
+                                                                                  material_weights, osm_file_name)
     H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
+
+    dict_edges_net = Map_osm.edges_net(name_file_net)
 
     node_source = list(nodes_coordinates.keys())[0]
     node_target = list(nodes_coordinates.keys())[-1]
 
     cost_total, paths = Carrinheiro.closest_insertion_path(G, H, node_source, node_target)
+
+    print(paths)
 
     sumo_route = []
     for i in paths:
@@ -248,22 +253,64 @@ def create_route(stop_points, material_weights):
     for i in paths:
         fig, ax = ox.plot_graph_route(G, i, route_linewidth=6, node_size=0, bgcolor='w')
 
-
     return paths
 
 
-def main():
+def get_seed(seed_id):
+    seeds = [1973272912, 188312339, 1072664641, 694388766,
+             2009044369, 934100682, 1972392646, 1936856304,
+             1598189534, 1822174485, 1871883252, 558746720,
+             605846893, 1384311643, 2081634991, 1644999263,
+             773370613, 358485174, 1996632795, 1000004583,
+             1769370802, 1895218768, 186872697, 1859168769,
+             349544396, 1996610406, 222735214, 1334983095,
+             144443207, 720236707, 762772169, 437720306,
+             939612284, 425414105, 1998078925, 981631283,
+             1024155645, 822780843, 701857417, 960703545,
+             2101442385, 2125204119, 2041095833, 89865291,
+             898723423, 1859531344, 764283187, 1349341884,
+             678622600, 778794064, 1319566104, 1277478588,
+             538474442, 683102175, 999157082, 985046914,
+             722594620, 1695858027, 1700738670, 1995749838,
+             1147024708, 346983590, 565528207, 513791680]
+    return seeds[seed_id]
 
+
+def main():
     stop_points = [(-1.4690963838114115, -48.47907737431437), (-1.4669727715675633, -48.47476438242888),
                    (-1.4617914926718831, -48.48735602308006), (-1.4552257213149151, -48.476854602085865),
                    (-1.4570295065392669, -48.46451272534284), (-1.473840715457675, -48.4597131060169)]
 
-    material_weights = [(15, 'Kg'), (52, 'Kg'), (10, 'Kg'), (34, 'Kg'), (17, 'Kg'), (99, 'Kg')]
+    material_weights = [(0, 'Kg'), (52, 'Kg'), (10, 'Kg'), (34, 'Kg'), (7, 'Kg'), (99, 'Kg'), (15, 'Kg'), (6, 'Kg'), (9, 'Kg'), (0, 'Kg')]
 
-    a = random.seed(1973272912)
-    mu = -48.4790
-    sigma = 0.001 # standard deviation
-    print(random.gauss(mu, sigma))
+    n_points = 10
+    sigma = 0.01  # standard deviation
+    mean_lon = [-48.47000]
+    mean_lat = [-1.46000]
+
+    #, -47.07000]
+    #, -22.81000]
+
+    # mean_lon = [-47.07000]
+    # mean_lat = [-22.81000]
+
+    ########3 --sidewalks.guess.from-permissons <BOOL>
+
+    a = 0
+
+    for lat in mean_lat:
+
+        random.seed(get_seed(a))
+        longitudes = [random.gauss(mean_lon[a], sigma) for i in range(n_points)]
+        latitudes = [random.gauss(lat, sigma) for i in range(n_points)]
+        stop_points = [(latitudes[i], longitudes[i]) for i in range(len(latitudes))]
+        paths = create_route(stop_points, material_weights)
+        print(stop_points)
+
+    #
+    # a += 1
+
+
 
     # paths = create_route(stop_points, material_weights)
 
