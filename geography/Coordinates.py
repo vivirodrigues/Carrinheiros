@@ -169,6 +169,26 @@ def create_osmnx(coordinates):
     return osmnx_list[0], osmnx_list[1], osmnx_list[2], osmnx_list[3]
 
 
+def add_m(coordinate):
+    if coordinate < 0:
+        new_coord = 'm' + str(abs(coordinate))
+    else:
+        new_coord = str(abs(coordinate))
+    return new_coord
+
+
+def def_file_name(coordinates_list):
+
+    n1 = add_m(coordinates_list[0])
+    n2 = add_m(coordinates_list[1])
+    n3 = add_m(coordinates_list[2])
+    n4 = add_m(coordinates_list[3])
+
+    name = n1 + '_' + n2 + '_' + n3 + '_' + n4
+
+    return name + '.osm'
+
+
 if __name__ == "__main__":
     coordinates = ([(-22.816008, -47.075614),
                     (-22.816639, -47.074891),

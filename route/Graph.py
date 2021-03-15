@@ -232,7 +232,7 @@ def _surface(u, v, surface_vector):
             return i[1]
 
 
-def surface(G, directory, file_name):
+def surface(G, file_name):
     """
     This function configures the surface of the graph edges.
 
@@ -251,7 +251,7 @@ def surface(G, directory, file_name):
                         Graph with surface information in
                         each edge.
     """
-    surface_vector = define_surface(directory + file_name)
+    surface_vector = define_surface(file_name)
     function_name = inspect.currentframe().f_code.co_name
     for u, v, k, data in G.edges(keys=True, data=True):
         surface_name = _surface(u, v, surface_vector)
@@ -282,7 +282,7 @@ def define_max_speed(highway):
                 'primary_link': 60, 'secondary_link': 40, 'tertiary_link': 40,
                 'living_street': 30, 'service': 30, 'pedestrian': 10,
                 'track': 60, 'sidewalk': 10, 'footway': 10, 'crossing': 10,
-                'steps': 200}
+                'steps': 200, 'cycleway': 10000}
 
     max_speed = maxspeed.get(highway)
 
@@ -368,13 +368,13 @@ def max_speed_factor(weight, speed):
     if speed < 21:
         factor = 0
     elif speed < 41:
-        factor = 4
+        factor = 40
     elif speed < 61:
-        factor = 6
+        factor = 60
     elif speed < 81:
-        factor = 8
+        factor = 80
     elif speed < 91:
-        factor = 9
+        factor = 90
     else:
         factor = 10
 
@@ -505,15 +505,15 @@ def _weight(G, weight):
     return lambda u, v, data: data.get(weight, 1)
 
 
-def configure_graph(G, geotiff_name, stop_points, vehicle_mass, ad_weights):
+def configure_graph(G, geotiff_name, stop_points, ad_weights, file_name_osm):
 
-    G, nodes_and_coordinates, nodes_and_weights = Scenario.add_collect_points(G, stop_points, ad_weights)
+    G, nodes_and_coordinates, nodes_and_weights = Scenario.add_collect_points(G, stop_points, ad_weights, file_name_osm)
     G = set_node_elevation(G, MAPS_DIRECTORY + geotiff_name)
     G = edge_grades(G)
-    G = surface(G, MAPS_DIRECTORY, FILE_NAME_OSM)
+    G = surface(G, file_name_osm)
     G = hypotenuse(G)
     G = maxspeed(G)
-    G = update_weight(G, vehicle_mass)
+    G = update_weight(G, VEHICLE_MASS)
 
     save_graph_file(G, MAPS_DIRECTORY, GRAPH_NAME)
     # plot_graph(G)
@@ -521,32 +521,73 @@ def configure_graph(G, geotiff_name, stop_points, vehicle_mass, ad_weights):
     return G, nodes_and_coordinates, nodes_and_weights
 
 
-def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights):
-    G, nodes_and_coordinates, nodes_and_weights = Scenario.add_collect_points(G, stop_points, ad_weights)
-    Main.netconvert_geotiff(MAPS_DIRECTORY + FILE_NAME_OSM, MAPS_DIRECTORY + 'out.tif', NET)
-    G = Scenario.simulation_edit_graph(G)
+def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_name_osm):
+
+    G, nodes_coordinates, nodes_weights = Scenario.add_collect_points(G, stop_points, ad_weights, file_name_osm)
+
+    Main.netconvert_geotiff(file_name_osm, MAPS_DIRECTORY + 'out.tif', NET)
+
+    G = Scenario.simulation_edit_graph(G, file_name_osm)
+
     G = set_node_elevation(G, geotiff_name)
+
     G = edge_grades(G)
-    G = surface(G, MAPS_DIRECTORY, FILE_NAME_OSM)
+
+    G = surface(G, file_name_osm)
+
     G = hypotenuse(G)
+
     G = maxspeed(G)
+
     G = update_weight(G, VEHICLE_MASS)
 
-    save_graph_file(G, MAPS_DIRECTORY, 'map')
-    #plot_graph(G)
+    # it transforms some edges in two ways streets
+    if BIDIRECTIONAL is True:
+        add_edges_G = [(v, u, data) for u, v, k, data in G.edges(keys=True, data=True) if G.has_edge(*(v, u)) is False and data['highway'] in TWO_WAY]
+        G.add_edges_from(add_edges_G)
 
-    return G, nodes_and_coordinates, nodes_and_weights
+    """
+    deadends = [(u, v) for u, v, k, data in G.edges(keys=True, data=True) if data['highway'] == 'footway']
+    # data['highway'] == 'cycleway'
+
+    
+    for i, j in deadends:
+        e = (i, j, {"highway": "footway"})
+        G.remove_edge(*e[:2])
+
+    deadends = [(u, v) for u, v, k, data in G.edges(keys=True, data=True) if data['highway'] == 'cycleway']
+    # data['highway'] == 'cycleway'
+
+    for i, j in deadends:
+        e = (i, j, {"highway": "cycleway"})
+        G.remove_edge(i, j, key={"highway": "cycleway"})
+    """
+
+    save_graph_file(G, MAPS_DIRECTORY, 'map')
+    # plot_graph(G)
+
+    return G, nodes_coordinates, nodes_weights
 
 
 if __name__ == '__main__':
     G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
-    G = set_node_elevation(G, '../' + MAPS_DIRECTORY + '22S48_ZN.tif')
-    G = edge_grades(G)
-    nodes = list(G.nodes)
-    G = surface(G, '../' + MAPS_DIRECTORY, FILE_NAME_OSM)
-    G = hypotenuse(G)
-    G = maxspeed(G)
-    G = update_weight(G, 10)
+    #name_osm = '../data/maps/47.107718000000006_22.843953_47.054891_22.796008.osm'
+    #G = set_node_elevation(G, '../' + MAPS_DIRECTORY + '22S48_ZN.tif')
+    #G = edge_grades(G)
+    #nodes = list(G.nodes)
+    #G = surface(G, '../' + MAPS_DIRECTORY, name_osm)
+    #G = hypotenuse(G)
+    #G = maxspeed(G)
+    #G = update_weight(G, 10)
+
+    G2 = G.copy()
+    fig, ax = ox.plot_graph(G)
+    deadends = [(u, v) for u, v, k, data in G.edges(keys=True, data=True) if data['highway'] == 'footway']
+    print(deadends)
+    G2.remove_nodes_from(deadends)
+    fig, ax = ox.plot_graph(G2)
+    #G2.remove_nodes_from(deadends)
+    #fig, ax = ox.plot_graph(G2)
 
     save_graph_file(G, '../' + MAPS_DIRECTORY, 'map1')
 

@@ -5,10 +5,10 @@ from route import Graph
 import osmnx as ox
 from Constants import *
 from shapely.geometry import Point, LineString
-from simulation.Map_osm import create_node, create_way, parse_file_tree, node_coordinates, parse_file_minidom, get_nodes, edges_net, adjacent_nodes
+from simulation.Map_osm import create_node, create_way, parse_file_tree, node_coordinates, parse_file_minidom, get_nodes, edges_net, adjacent_nodes, edges_type
 
 
-def add_collect_points(G, collect_points, ad_weights):
+def add_collect_points(G, collect_points, ad_weights, file_name_osm):
 
     id_node_collect = 100000000000
     id_node_collect2 = 200000000000
@@ -27,7 +27,7 @@ def add_collect_points(G, collect_points, ad_weights):
     nodes_mass_increment = {}
     nodes_collect_coordinates = {}
 
-    tree = parse_file_tree(MAPS_DIRECTORY + FILE_NAME_OSM)
+    tree = parse_file_tree(file_name_osm)
     osm_tag = tree.getroot()
     dict_nodes_coords = node_coordinates(tree)
 
@@ -47,19 +47,19 @@ def add_collect_points(G, collect_points, ad_weights):
 
         weight = 0
 
+
         try:
             # get the adjacent nodes of the coordinate
             nodes_adjacent, location = Map.adjacent_nodes(i)
+            #print(nodes_adjacent, location)
+            #coordinates, keys = nearest_edge(G, i)
+            #print(coordinates, keys)
+
         except:
             print("The ad on the", i, "coordinate is in an invalid area.")
 
-        # it do not considers invalid coordinates
-        if nodes_adjacent is None or location is None:
-            print("The ad on the", i, "coordinate is in an invalid area.")
-            pass
-
         # the dict must have 2 items (2 adjacent nodes)
-        elif len(nodes_adjacent) > 1:
+        if len(nodes_adjacent) > 1:
 
             # id of the adjacent nodes
             keys = list(nodes_adjacent.keys())
@@ -67,9 +67,15 @@ def add_collect_points(G, collect_points, ad_weights):
             # coordinates of the adjacent nodes
             coordinates = list(nodes_adjacent.values())
 
+            e1 = (keys[0], keys[1])
+            e2 = (keys[1], keys[0])
+
             # if the adjacent nodes are not in the graph
             if keys[0] not in G or keys[1] not in G:
-                coordinates, keys = nearest_edge(G, i, keys)
+                coordinates, keys = nearest_edge(G, i)
+
+            elif G.has_edge(*e1) or G.has_edge(*e2) is False:
+                coordinates, keys = nearest_edge(G, i)
 
             line = LineString(coordinates)
             point = Point(i)
@@ -84,9 +90,11 @@ def add_collect_points(G, collect_points, ad_weights):
 
                 # create a node with collect point coordinates
                 G = _add_node(G, i, id_node_collect)
+                # print("Add", id_node_collect)
 
                 # create the closest node inside the way
                 G = _add_node(G, nearest_node, id_nearest_node)
+                # print("Add", id_nearest_node)
 
                 len_first_edge = calculate_distance(first_edge[0], first_edge[1])
                 len_second_edge = calculate_distance(second_edge[0], second_edge[1])
@@ -102,19 +110,21 @@ def add_collect_points(G, collect_points, ad_weights):
 
                 # edge between node collect to nearest node dividing the adjacent street
                 len_edge = calculate_distance(i, nearest_node)
-                G.add_edge(id_node_collect, id_nearest_node, length=len_edge, highway='footway', oneway='false')
-                G.add_edge(id_nearest_node, id_node_collect, length=len_edge, highway='footway', oneway='false')
+                G.add_edge(id_node_collect, id_nearest_node, length=len_edge, highway='service', oneway='false')
+                G.add_edge(id_nearest_node, id_node_collect, length=len_edge, highway='service', oneway='false')
+                # print("add edge", id_node_collect, id_nearest_node)
 
                 # create the edge of the first adjacent node
                 # to the closest node inside the way
                 G.add_edge(id_nearest_node, first_node, length=len_first_edge, highway=highway, oneway='false')
                 G.add_edge(first_node, id_nearest_node, length=len_first_edge, highway=highway, oneway='false')
-                e = (id_nearest_node, first_node)
+                # print("add edge", id_nearest_node, first_node)
 
                 # create the edge of the second adjacent node
                 # to the closest node inside the way
                 G.add_edge(id_nearest_node, second_node, length=len_second_edge, highway=highway, oneway='false')
                 G.add_edge(second_node, id_nearest_node, length=len_second_edge, highway=highway, oneway='false')
+                # print("add edge", id_nearest_node, second_node)
 
                 G = delete_edge(G, first_node, second_node)
 
@@ -159,6 +169,9 @@ def add_collect_points(G, collect_points, ad_weights):
 
                 # get the id of the nearest node
                 id_node = list(Map.closest_node_id(i, nodes_adjacent).keys())[0]
+                id_node, dist = ox.get_nearest_node(G, i, return_dist=True)
+                # print("já existe", id_node, dist)
+
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]
                 nodes_mass_increment.update([(id_node, weight)])
@@ -167,11 +180,11 @@ def add_collect_points(G, collect_points, ad_weights):
         else:
             print("Error: only tuple are supported.")
 
-    tree.write(MAPS_DIRECTORY + FILE_NAME_OSM, xml_declaration=True)
+    tree.write(file_name_osm, xml_declaration=True)
     return G, nodes_collect_coordinates, nodes_mass_increment
 
 
-def nearest_edge(G, i, keys):
+def nearest_edge(G, i):
     """
 
     :param G:       NetworkX graph.
@@ -187,6 +200,7 @@ def nearest_edge(G, i, keys):
                     tuple with coordinates of adjacent nodes
                     list with id of adjacent nodes
     """
+    keys = [0, 0]
 
     keys[0], keys[1], key, shapely, distance_ = ox.get_nearest_edge(G, i, return_geom=True, return_dist=True)
 
@@ -218,6 +232,7 @@ def define_highway(G, first_node, second_node):
     :return:            String
     """
 
+
     # define the type of highway based on OSM
     try:
         highway = G.edges[first_node, second_node, 0]['highway']
@@ -233,21 +248,32 @@ def define_highway(G, first_node, second_node):
 def delete_edge(G, first_id, second_id):
     # removes the edge connecting the two adjacent nodes
     e = (first_id, second_id)
+    e1 = (second_id, first_id)
 
     if G.has_edge(*e):
         G.remove_edge(first_id, second_id)
-    else:
+        """
+        try:
+            G.remove_edge(first_id, second_id)
+        except:
+            pass
+        """
+    elif G.has_edge(*e1):
         G.remove_edge(second_id, first_id)
+    else:
+        pass
 
     return G
 
 
-def simulation_edit_graph(G):
+def simulation_edit_graph(G, file_name_osm):
 
     dict_edges_net = edges_net(NET)
+    dict_edges_type = edges_type(NET)
+
     nodes_adjacent_xml = adjacent_nodes(dict_edges_net)
 
-    tree = parse_file_tree(MAPS_DIRECTORY + FILE_NAME_OSM)
+    tree = parse_file_tree(file_name_osm)
 
     dict_nodes_coords = node_coordinates(tree)
 
@@ -261,21 +287,30 @@ def simulation_edit_graph(G):
         try:
             adj = list(G_adjacents[int(i)].keys())
         except:
-            # if node does not exists in G
+            # if the node does not exists in G
             coords = dict_nodes_coords.get(int(i))  # lat, lon
             G = _add_node(G, coords, int(i))
             nodes_added.append(int(i))
 
     # adding edges
-    for i in nodes_added:
+    for i in nodes:
         if nodes_adjacent_xml.get(i) is not None and len(nodes_adjacent_xml.get(i)) > 0:
             for j in nodes_adjacent_xml.get(i):
                 e = (i, j)
-                if G.has_edge(*e):
-                    pass
-                else:
+                e1 = (j, i)
+
+                if G.has_edge(*e) is False:
+
                     len_edge = calculate_distance(dict_nodes_coords.get(i), dict_nodes_coords.get(j))
-                    G.add_edge(i, j, length=len_edge, highway='footway', oneway='false')
+                    edge_type = dict_edges_type.get(e)
+                    # if edge_type != ['cycleway']:
+                    G.add_edge(i, j, length=len_edge, highway=edge_type[0], oneway='true')
+
+                if G.has_edge(*e1) is False and BIDIRECTIONAL is True:
+
+                    len_edge = calculate_distance(dict_nodes_coords.get(j), dict_nodes_coords.get(i))
+                    edge_type = dict_edges_type.get(e)
+                    G.add_edge(j, i, length=len_edge, highway=edge_type[0], oneway='true')
 
     # deleting edges
     for i in nodes:
@@ -287,7 +322,6 @@ def simulation_edit_graph(G):
             adj_net = set(nodes_adjacent_xml.get(int(i)))
         else:
             adj_net = set()
-
 
         edges_to_delete = adj_G - adj_net
         if not None and len(edges_to_delete) > 0:

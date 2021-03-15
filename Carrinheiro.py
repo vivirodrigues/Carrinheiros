@@ -37,15 +37,14 @@ def coverage_area(stop_points):
     return stop_points
 
 
-def graph_scenario(stop_points, geotiff_name, ad_weights):
+def graph_scenario(stop_points, geotiff_name, ad_weights, file_name_osm):
 
     max_lat, min_lat, max_lon, min_lon = Coordinates.create_osmnx(stop_points)
 
     # Scenario graph (paths are edges and junctions are nodes)
     G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
     # ox.plot_graph(G)
-    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph(G, geotiff_name, stop_points, VEHICLE_MASS,
-                                                                        ad_weights)
+    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph(G, geotiff_name, stop_points, ad_weights, file_name_osm)
     # print(nodes_and_coordinates, nodes_and_weights)
     return G, nodes_coordinates, nodes_mass_increment
 
@@ -101,12 +100,12 @@ def carrinheiro(id_user, date):
     stop_points = scenario_stop_points(path)
 
     # download the osm file (scenario)
-    OpenSteetMap.file_osm(MAPS_DIRECTORY + FILE_NAME_OSM, stop_points)
+    file_name_osm = OpenSteetMap.file_osm(MAPS_DIRECTORY, stop_points)
 
     # download the GeoTiff file (scenario)
     geotiff_name = GeoTiff.geotiff(MAPS_DIRECTORY, stop_points)
 
-    G, nodes_coordinates, nodes_mass_increment = graph_scenario(stop_points, geotiff_name, path.material_weights)
+    G, nodes_coordinates, nodes_mass_increment = graph_scenario(stop_points, geotiff_name, path.material_weights, file_name_osm)
 
     H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
 
