@@ -2,7 +2,7 @@ import osmnx as ox
 import pandas as pd
 import networkx as nx
 import inspect
-from geography import GeoTiff
+from geography import GeoTiff, Coordinates
 from Constants import *
 import math
 from scipy import constants
@@ -12,7 +12,6 @@ from route import Scenario
 import xml.dom.minidom
 from collections import Counter
 from simulation import Main
-from route import Graph_Collect
 
 
 def set_node_elevation(G, name_file_geotiff):
@@ -77,15 +76,12 @@ def edge_grades(G):
     return G
 
 
-def save_graph_file(G, directory='', name_file='map'):
+def save_graph_file(G, name_file='map'):
     """
     Save the graph file
 
     :param G:           NetworkX graph
                         input graph
-
-    :param directory:   String
-                        path to save the file
 
     :param name_file    String
                         Name of the file
@@ -103,7 +99,7 @@ def save_graph_file(G, directory='', name_file='map'):
     else:
         name_file += '.graphml'
 
-    ox.io.save_graphml(G, filepath=directory + name_file)
+    ox.io.save_graphml(G, filepath=name_file)
     #ox.io.save_graph_shapefile(G, filepath= directory + 'shapefile')
 
 
@@ -135,27 +131,26 @@ def hypotenuse(G):
                     in each edge.
     """
 
-    name = inspect.currentframe().f_code.co_name
-    coord_x = nx.get_node_attributes(G, "x")
-    coord_y = nx.get_node_attributes(G, "y")
-    coord_z = nx.get_node_attributes(G, "elevation")
-    for u, v, k, data in G.edges(keys=True, data=True):
-        coord_x_1 = coord_x.get(u)
-        coord_y_1 = coord_y.get(u)
-        coord_z_1 = coord_z.get(u)
-        coord_1 = (coord_x_1, coord_y_1)
-        coord_x_2 = coord_x.get(v)
-        coord_y_2 = coord_y.get(v)
-        coord_z_2 = coord_z.get(v)
-        coord_2 = (coord_x_2, coord_y_2)
-        b = hs.haversine(coord_1, coord_2, unit=Unit.METERS)
-        c = coord_z_2 - coord_z_1
-        if c != 0:
+    edges_G = [(u, v, k, data) for u, v, k, data in G.edges(keys=True, data=True) if
+                   data['length'] is None]
+    if len(edges_G) > 0:
+        coord_x = nx.get_node_attributes(G, "x")
+        coord_y = nx.get_node_attributes(G, "y")
+        coord_z = nx.get_node_attributes(G, "elevation")
+        for u, v, k, data in edges_G:  # G.edges(keys=True, data=True):
+            coord_x_1 = coord_x.get(u)
+            coord_y_1 = coord_y.get(u)
+            coord_z_1 = coord_z.get(u)
+            coord_1 = (coord_x_1, coord_y_1)
+            coord_x_2 = coord_x.get(v)
+            coord_y_2 = coord_y.get(v)
+            coord_z_2 = coord_z.get(v)
+            coord_2 = (coord_x_2, coord_y_2)
+            b = hs.haversine(coord_1, coord_2, unit=Unit.METERS)
+            c = coord_z_2 - coord_z_1
             a = ((b ** 2) + (c ** 2)) ** (1 / 2)
-        else:
-            a = data['length']
-        ########################
-        data[name] = str(a)
+            ########################
+            data['length'] = str(a)
     return G
 
 
@@ -382,7 +377,7 @@ def max_speed_factor(weight, speed):
     return weight
 
 
-def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
+def force(vehicle_mass, surface_floor, angle_inclination):
     """
     This function calculates the work according to the resistance forces,
     It includes aerodynamic force, rolling resistance, and gravity (px).
@@ -395,8 +390,8 @@ def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
                                 Ex: asphalt
 
     :param angle_inclination:   float
-                                angle inclination of the way,
-                                according to elevation
+                                angle (slope) inclination of the way,
+                                according to elevation, in radians
 
     :param hypotenuse_length:   float
                                 The displacement value calculated
@@ -420,17 +415,28 @@ def _work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
     if rolling_coefficient is None:
         rolling_coefficient = 0.01 * (1 + (0.001 * SPEED))
 
-    hypotenuse_length = float(hypotenuse_length)
-    normal = vehicle_mass * constants.g * math.cos(abs(angle_inclination))
+    normal = vehicle_mass * constants.g * math.cos(angle_inclination)
+
     rolling_resistance = rolling_coefficient * normal
+
     aerodynamic_force = (1 / 2) * AIR_DENSITY * AERODYNAMIC_COEFFICIENT \
                         * FRONTAL_VEHICLE_AREA * (SPEED ** 2)
-    px = vehicle_mass * constants.g * math.sin(abs(angle_inclination))
+
+    px = vehicle_mass * constants.g * math.sin(angle_inclination)
 
     # force to maintain a constant velocity
-    force = aerodynamic_force + px + rolling_resistance
+    resultant_force = aerodynamic_force + px + rolling_resistance
 
-    resultant_work = force * hypotenuse_length
+    return abs(resultant_force)
+
+
+def work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
+
+    hypotenuse_length = float(hypotenuse_length)
+
+    resultant_force = force(vehicle_mass, surface_floor, angle_inclination)
+
+    resultant_work = resultant_force * hypotenuse_length
 
     return resultant_work
 
@@ -452,7 +458,7 @@ def update_weight(G, vehicle_mass):
 
     for u, v, k, data in G.edges(keys=True, data=True):
 
-        weight = _work(vehicle_mass, data['surface'], data['grade'], data['hypotenuse'])
+        weight = work(vehicle_mass, data['surface'], data['grade'], data['length']) # math.degrees()
         data['weight'] = max_speed_factor(weight, data['maxspeed'])
 
     return G
@@ -515,7 +521,7 @@ def configure_graph(G, geotiff_name, stop_points, ad_weights, file_name_osm):
     G = maxspeed(G)
     G = update_weight(G, VEHICLE_MASS)
 
-    save_graph_file(G, MAPS_DIRECTORY, GRAPH_NAME)
+    save_graph_file(G, GRAPH_NAME)
     # plot_graph(G)
 
     return G, nodes_and_coordinates, nodes_and_weights
@@ -546,24 +552,6 @@ def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_na
         add_edges_G = [(v, u, data) for u, v, k, data in G.edges(keys=True, data=True) if G.has_edge(*(v, u)) is False and data['highway'] in TWO_WAY]
         G.add_edges_from(add_edges_G)
 
-    """
-    deadends = [(u, v) for u, v, k, data in G.edges(keys=True, data=True) if data['highway'] == 'footway']
-    # data['highway'] == 'cycleway'
-
-    
-    for i, j in deadends:
-        e = (i, j, {"highway": "footway"})
-        G.remove_edge(*e[:2])
-
-    deadends = [(u, v) for u, v, k, data in G.edges(keys=True, data=True) if data['highway'] == 'cycleway']
-    # data['highway'] == 'cycleway'
-
-    for i, j in deadends:
-        e = (i, j, {"highway": "cycleway"})
-        G.remove_edge(i, j, key={"highway": "cycleway"})
-    """
-
-    save_graph_file(G, MAPS_DIRECTORY, 'map')
     # plot_graph(G)
 
     return G, nodes_coordinates, nodes_weights
