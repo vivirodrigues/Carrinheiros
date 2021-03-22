@@ -1,0 +1,9 @@
+<routes>
+	<vType accel="1.5" decel = "2.0" id="Carrinheiro" length="2" maxSpeed = "1" carFollowModel="KraussPS" emissionClass="zero" personCapacity="1" vClass="ignoring" />
+	<!-- vClass="truck" 	-->
+	<route id="route0" edges="gneE1" />
+	
+	<vehicle depart="1" id="veh0" route="route0" type="Carrinheiro" />
+	
+
+</routes>

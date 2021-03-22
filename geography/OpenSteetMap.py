@@ -1,6 +1,7 @@
 from geography import Download, Coordinates, Overpass
+from general import Saves
 from Constants import *
-import os
+
 
 def define_iso(search_coordinate):
     """
@@ -81,35 +82,6 @@ def _search_coordinate(coordinates_list):
     return search_coordinate
 
 
-def coords_file_name(file_name):
-
-    directory = file_name.split(sep='/')
-    directory = directory[:-1]
-    directory = '/'.join(directory)
-    caminhos = [os.path.join(directory, nome) for nome in os.listdir(directory)]
-    arquivos = [arq for arq in caminhos if os.path.isfile(arq)]
-    osms = [file.split(sep='/')[-1:] for file in arquivos if file.lower().endswith(".osm")]
-
-    # [min_lon, min_lat, max_lon, max_lat]
-    coords_files = []
-    for i in osms:
-        coords = i[0].split(sep='_')
-        last = coords[-1].split(sep='.')[:-1]
-        last = '.'.join(last)
-        coords.pop(-1)
-        coords.append(last)
-        if len(coords) > 3:
-            coords_files.append(coords)
-    return coords_files
-
-
-def coord_value(value):
-    if value[0] == 'm':
-        return -float(value[1:])
-    else:
-        return float(value)
-
-
 def _osm(coordinates_osm, file_name):
     """
     This function checks if a Open Street Map '.osm' file
@@ -155,21 +127,17 @@ def file_osm(directory, coordinates_points):
     :return:
     """
 
+    coordinates_list = Coordinates.coordinates_list_bbox(coordinates_points, margin_value_coordinate=0.0)
+    file_name = directory + Coordinates.def_file_name(coordinates_list) + '.osm'
+
+    file = Saves.verify_file_exists(coordinates_list, file_name)
+    if file is not False:
+        print("OSM exists in ", file)
+        return MAPS_DIRECTORY + file
+
     coordinates_list = Coordinates.coordinates_list_bbox(coordinates_points)
     coordinates_osm = Coordinates.coordinates_string(coordinates_list)
-    file_name = directory + Coordinates.def_file_name(coordinates_list)
-
-    # it gets all names of osm files inside the same directory of 'file_name'
-    coords_files_dir = coords_file_name(file_name)
-
-    if len(coords_files_dir) > 0:
-        # it verifies if the current coordinate is inside any coordinate already downloaded
-        for i in coords_files_dir:
-            if coordinates_list[0] >= coord_value(i[0]) and \
-                    coordinates_list[1] >= coord_value(i[1]) and \
-                    coordinates_list[2] <= coord_value(i[2]) and \
-                    coordinates_list[3] <= coord_value(i[3]):
-                return file_name
+    file_name = directory + Coordinates.def_file_name(coordinates_list) + '.osm'
 
     # it just download a new osm file if does not exists a file with
     # the current coordinates

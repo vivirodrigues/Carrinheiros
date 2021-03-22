@@ -5,7 +5,7 @@ from route import Graph
 import osmnx as ox
 from Constants import *
 from shapely.geometry import Point, LineString
-from simulation.Map_osm import create_node, create_way, parse_file_tree, node_coordinates, parse_file_minidom, get_nodes, edges_net, adjacent_nodes, edges_type
+from simulation.Map_Simulation import create_node, create_way, parse_file_tree, node_coordinates, delete_nodes_osm, get_nodes, edges_net, adjacent_nodes, edges_type, delete_ways_osm
 
 
 def add_collect_points(G, collect_points, ad_weights, file_name_osm):
@@ -133,30 +133,29 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
 
                     if int(id_node_collect) in list(dict_nodes_coords.keys()):
                         # if the data is already in the xml
-                        pass
+                        delete_nodes_osm(file_name_osm)
+                        delete_ways_osm(file_name_osm)
 
-                    else:
+                    # it is necessary because every first node id is zero (?)
+                    if str(id_node_collect) == str(node1_added):
+                        osm_tag = create_node(osm_tag, str(0), str(0), str(0))
 
-                        # it is necessary because every first node id is zero (?)
-                        if str(id_node_collect) == str(node1_added):
-                            osm_tag = create_node(osm_tag, str(0), str(0), str(0))
+                    osm_tag = create_node(osm_tag, str(id_node_collect), str(i[0]), str(i[1]))
+                    osm_tag = create_node(osm_tag, str(id_node_collect2), str(i[0]), str(i[1] + 0.00001))
+                    osm_tag = create_node(osm_tag, str(id_nearest_node), str(nearest_node[0]), str(nearest_node[1]))
 
-                        osm_tag = create_node(osm_tag, str(id_node_collect), str(i[0]), str(i[1]))
-                        osm_tag = create_node(osm_tag, str(id_node_collect2), str(i[0]), str(i[1] + 0.00001))
-                        osm_tag = create_node(osm_tag, str(id_nearest_node), str(nearest_node[0]), str(nearest_node[1]))
+                    # edges between node collect to nearest node dividing the adjacent street
+                    osm_tag = create_way(osm_tag, str(id_edge_collect1), str(id_nearest_node), str(id_node_collect))
+                    osm_tag = create_way(osm_tag, str(id_edge_collect2), str(id_node_collect), str(id_nearest_node))
+                    osm_tag = create_way(osm_tag, str(id_edge_collect3), str(id_node_collect), str(id_node_collect2))
 
-                        # edges between node collect to nearest node dividing the adjacent street
-                        osm_tag = create_way(osm_tag, str(id_edge_collect1), str(id_nearest_node), str(id_node_collect))
-                        osm_tag = create_way(osm_tag, str(id_edge_collect2), str(id_node_collect), str(id_nearest_node))
-                        osm_tag = create_way(osm_tag, str(id_edge_collect3), str(id_node_collect), str(id_node_collect2))
+                    # edges between nearest node and first id node
+                    osm_tag = create_way(osm_tag, str(id_1adjacent_street1), str(first_node), str(id_nearest_node))
+                    osm_tag = create_way(osm_tag, str(id_1adjacent_street2), str(id_nearest_node), str(first_node))
 
-                        # edges between nearest node and first id node
-                        osm_tag = create_way(osm_tag, str(id_1adjacent_street1), str(first_node), str(id_nearest_node))
-                        osm_tag = create_way(osm_tag, str(id_1adjacent_street2), str(id_nearest_node), str(first_node))
-
-                        # edges between nearest node and second id node
-                        osm_tag = create_way(osm_tag, str(id_2adjacent_street1), str(id_nearest_node), str(second_node))
-                        osm_tag = create_way(osm_tag, str(id_2adjacent_street2), str(second_node), str(id_nearest_node))
+                    # edges between nearest node and second id node
+                    osm_tag = create_way(osm_tag, str(id_2adjacent_street1), str(id_nearest_node), str(second_node))
+                    osm_tag = create_way(osm_tag, str(id_2adjacent_street2), str(second_node), str(id_nearest_node))
 
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]

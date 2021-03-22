@@ -21,3 +21,6 @@ LIMIT_ITERATION = 15
 ######## Simulation
 SIMULATION = True
 NET = 'map.net.xml'
+
+
+# --remove-edges.by-vclass rail_slow,rail_fast,bicycle,pedestrian

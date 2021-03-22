@@ -186,7 +186,7 @@ def def_file_name(coordinates_list):
 
     name = n1 + '_' + n2 + '_' + n3 + '_' + n4
 
-    return name + '.osm'
+    return name
 
 
 if __name__ == "__main__":

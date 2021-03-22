@@ -363,15 +363,15 @@ def max_speed_factor(weight, speed):
     if speed < 21:
         factor = 0
     elif speed < 41:
-        factor = 40
-    elif speed < 61:
-        factor = 60
-    elif speed < 81:
-        factor = 80
-    elif speed < 91:
-        factor = 90
-    else:
         factor = 10
+    elif speed < 61:
+        factor = 20
+    elif speed < 81:
+        factor = 30
+    elif speed < 91:
+        factor = 40
+    else:
+        factor = 5
 
     weight = weight + (weight * (factor/100))
     return weight
@@ -441,6 +441,11 @@ def work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
     return resultant_work
 
 
+def impedance(length, grade):
+    penalty = grade ** 2
+    return length * penalty
+
+
 def update_weight(G, vehicle_mass):
     """
     Update all edge weights of the graph G,
@@ -460,6 +465,8 @@ def update_weight(G, vehicle_mass):
 
         weight = work(vehicle_mass, data['surface'], data['grade'], data['length']) # math.degrees()
         data['weight'] = max_speed_factor(weight, data['maxspeed'])
+        #data['weight'] = weight
+        data['impedance'] = impedance(data['length'], data['grade_abs'])
 
     return G
 
@@ -481,7 +488,7 @@ def get_edge_weight(G, u, v, id_edge):
     :return:            float
                         The weight of the edge
     """
-    weights = nx.get_edge_attributes(G, 'weight')
+    weights = nx.get_edge_attributes(G, IMPEDANCE)
     return weights.get((u, v, id_edge))
 
 
@@ -550,6 +557,7 @@ def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_na
     # it transforms some edges in two ways streets
     if BIDIRECTIONAL is True:
         add_edges_G = [(v, u, data) for u, v, k, data in G.edges(keys=True, data=True) if G.has_edge(*(v, u)) is False and data['highway'] in TWO_WAY]
+        # print("adicioanndo", add_edges_G)
         G.add_edges_from(add_edges_G)
 
     # plot_graph(G)

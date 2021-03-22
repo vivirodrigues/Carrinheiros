@@ -10,7 +10,7 @@ from route import Graph_Collect
 from route import Heuristics, GA
 import time
 import sys
-from simulation import Map_osm
+from simulation import Map_Simulation
 
 
 def scenario_stop_points(path):

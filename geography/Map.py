@@ -476,7 +476,7 @@ def adjacent_nodes(coordinate):
             return nodes_between, location
 
         # if the type of location is a OSM node
-        elif type_osm == 'node':
+        elif type_osm == 'node' or type_osm == 'relation':
 
             road = location.raw.get('address').get('road')
             city = location.raw.get('address').get('city')
