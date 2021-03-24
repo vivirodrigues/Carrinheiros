@@ -108,26 +108,33 @@ def calculate_force(G, dict_edges_net, id_edge, vehicle_mass, speed):
     slope = data_edge.get(0).get('grade')
     surface_floor = data_edge.get(0).get('surface')
 
-    current_force = Graph.force(vehicle_mass, surface_floor, slope)
+    current_force = Graph.force(vehicle_mass, surface_floor, slope, speed)
     return current_force
 
 
+def calculate_length(G, dict_edges_net, id_edge):
+    nodes = Map_Simulation.edges_to_nodes(id_edge, dict_edges_net)
+    data_edge = G.get_edge_data(nodes[0], nodes[1])
+
+    return data_edge.get(0).get('length')
+
+
 def run(route, G, dict_edges_net, file_name_json):
-    # speedList = []
-    # fuelList = []
-    # pdfSpeed = [0] * 110
-    # pdfFuel = [0] * 30
+
     power = []
     energy = []
     force = []
 
-    dicionarioPower = {}
-    dicionarioE = {}
-    dicionarioForce = {}
+    dicionario_power = {}
+    dicionario_e = {}
+    dicionario_force = {}
 
     incline = {}
     inclination = []
     total = 0
+
+    total_length = 0
+    before_edge_id = 0
 
     step = 1
     consumption = 0
@@ -188,6 +195,11 @@ def run(route, G, dict_edges_net, file_name_json):
                 force.append(calculate_force(G, dict_edges_net, edge_id, 110, speed))
                 energy.append(calculate_energy(110, speed, float(z)))
 
+                if edge_id != before_edge_id:
+                    print("Edge ", edge_id)
+                    total_length += calculate_length(G, dict_edges_net, edge_id)
+                    before_edge_id = edge_id
+
         traci.simulationStep()
         vehicles = traci.simulation.getEndingTeleportIDList()
 
@@ -198,15 +210,15 @@ def run(route, G, dict_edges_net, file_name_json):
 
     for i in range(len(power)):
         sett = {i: power[i]}
-        dicionarioPower.update(sett)
+        dicionario_power.update(sett)
 
     for i in range(len(force)):
         sett = {i: force[i]}
-        dicionarioForce.update(sett)
+        dicionario_force.update(sett)
 
     for i in range(len(energy)):
         sett = {i: energy[i]}
-        dicionarioE.update(sett)
+        dicionario_e.update(sett)
 
     for i in range(len(inclination)):
         set2 = {i: inclination[i]}
@@ -217,11 +229,12 @@ def run(route, G, dict_edges_net, file_name_json):
         sett = {i: pdfSpeed[i]}
         dicionarioSpeed.update(sett)
     """
+    print("Total length", total_length, "steps", step)
     traci.close()
     sys.stdout.flush()
-    writeJson(dicionarioForce, file_name_json + '_f')
-    writeJson(dicionarioPower, file_name_json)
-    writeJson(dicionarioE, file_name_json + '_e')
+    writeJson(dicionario_force, file_name_json + '_f')
+    writeJson(dicionario_power, file_name_json)
+    writeJson(dicionario_e, file_name_json + '_e')
     writeJson(incline, file_name_json + '_i')
 
     return totalConsumption
@@ -377,7 +390,7 @@ def main():
     # lon: -47.07000   -48.47000   -43.9438
     # lat: -22.81000   -1.46000    -19.9202
 
-    n_seeds = 16
+    n_seeds = 1
     json_files = []
 
     for a in range(0, n_seeds):
