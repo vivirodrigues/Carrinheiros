@@ -50,7 +50,7 @@ def download_osm(coordinates_osm, file_name):
     name_len = len(file_name)
     file_extension = file_name[name_len-4] + file_name[name_len-3] + file_name[name_len-2] + file_name[name_len-1]
 
-    # print("Downloading: ", coordinates_osm)
+    print("Downloading: ", coordinates_osm)
     url = "http://overpass.openstreetmap.ru/cgi/xapi_meta?*[bbox={}]".format(coordinates_osm)
     r = requests.get(url, allow_redirects=True)
     if file_extension == '.osm':

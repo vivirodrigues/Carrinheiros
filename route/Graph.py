@@ -51,8 +51,6 @@ def set_node_elevation(G, name_file_geotiff):
     # get elevation value from geotiff file,
     # based on x,y coordinate
     for i in range(0, len(x)):
-        if (GeoTiff.coordinate_pixel(name_file_geotiff, longitudes[i], latitudes[i])) is None:
-            print(":O")
         elevation.append(GeoTiff.coordinate_pixel(name_file_geotiff, longitudes[i], latitudes[i]))
 
     # create a pandas series with the id of the node and corresponding elevation values
@@ -377,7 +375,7 @@ def max_speed_factor(weight, speed):
     return weight
 
 
-def force(vehicle_mass, surface_floor, angle_inclination):
+def force(vehicle_mass, surface_floor, angle_inclination, speed = SPEED):
     """
     This function calculates the work according to the resistance forces,
     It includes aerodynamic force, rolling resistance, and gravity (px).
@@ -413,14 +411,16 @@ def force(vehicle_mass, surface_floor, angle_inclination):
 
     rolling_coefficient = rolling_coefficients.get(surface_floor)
     if rolling_coefficient is None:
-        rolling_coefficient = 0.01 * (1 + (0.001 * SPEED))
+        rolling_coefficient = 0.01 * (1 + (0.001 * speed))
 
     normal = vehicle_mass * constants.g * math.cos(angle_inclination)
 
     rolling_resistance = rolling_coefficient * normal
 
     aerodynamic_force = (1 / 2) * AIR_DENSITY * AERODYNAMIC_COEFFICIENT \
-                        * FRONTAL_VEHICLE_AREA * (SPEED ** 2)
+                        * FRONTAL_VEHICLE_AREA * (speed ** 2)
+
+    # print(aerodynamic_force)
 
     px = vehicle_mass * constants.g * math.sin(angle_inclination)
 
@@ -434,7 +434,7 @@ def work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
 
     hypotenuse_length = float(hypotenuse_length)
 
-    resultant_force = force(vehicle_mass, surface_floor, angle_inclination)
+    resultant_force = force(vehicle_mass, surface_floor, angle_inclination, SPEED)
 
     resultant_work = resultant_force * hypotenuse_length
 
@@ -529,7 +529,7 @@ def configure_graph(G, geotiff_name, stop_points, ad_weights, file_name_osm):
     G = update_weight(G, VEHICLE_MASS)
 
     save_graph_file(G, GRAPH_NAME)
-    # plot_graph(G)
+    #plot_graph(G)
 
     return G, nodes_and_coordinates, nodes_and_weights
 
@@ -553,6 +553,8 @@ def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_na
     G = maxspeed(G)
 
     G = update_weight(G, VEHICLE_MASS)
+
+    plot_graph(G)
 
     # it transforms some edges in two ways streets
     if BIDIRECTIONAL is True:

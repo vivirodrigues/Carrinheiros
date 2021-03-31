@@ -1,3 +1,7 @@
+import haversine as hs
+import osmnx as ox
+
+
 def min_latitude(coordinates):
     """
     This function returns the minimum value of latitude
@@ -72,7 +76,7 @@ def max_latitude(coordinates):
     return max_lat
 
 
-def _add_margin(coordinates_list, margin_value_coordinate=0.02):
+def _add_margin(coordinates_list, margin_value_coordinate=0.01):
     """
     This function add a margin in the bound box (bbox) according to
     coordinate margin value.
@@ -91,12 +95,29 @@ def _add_margin(coordinates_list, margin_value_coordinate=0.02):
                                     with margin, in this order:
                                     [min_lon, min_lat, max_lon, max_lat]
     """
+
+    base = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[3], coordinates_list[0]))
+    print("base", base)
+    altura = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[1], coordinates_list[2]))
+    print("altura", altura)
+    area_original = base * altura
+    print("Área original", area_original)
+
     # margin in the scenario rectangle area
     # add a margin in the scenario rectangle area
     coordinates_list[0] -= margin_value_coordinate
     coordinates_list[1] -= margin_value_coordinate
     coordinates_list[2] += margin_value_coordinate
     coordinates_list[3] += margin_value_coordinate
+
+    base = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[3], coordinates_list[0]))
+    print("base 2", base)
+    altura = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[1], coordinates_list[2]))
+    print("altura 2", altura)
+    area_nova = base * altura
+    print("Área nova", area_nova)
+    print("Área", area_nova - area_original)
+
     return coordinates_list
 
 
@@ -118,7 +139,7 @@ def coordinates_string(coordinates_list):
     return string_coordinates
 
 
-def coordinates_list_bbox(coordinates, margin_value_coordinate=0.02):
+def coordinates_list_bbox(coordinates, margin_value_coordinate=0.01):
     """
     This function transforms a list with geographic points in a list
     of bound box (bbox). The list contains the minimum longitude and
@@ -157,8 +178,7 @@ def coordinates_list_bbox(coordinates, margin_value_coordinate=0.02):
     return coordinates_list
 
 
-def create_osmnx(coordinates):
-    margin_value_coordinate = 0.02
+def create_osmnx(coordinates, margin_value_coordinate = 0.01):
     max_lon = max_longitude(coordinates) + margin_value_coordinate
     min_lon = min_longitude(coordinates) - margin_value_coordinate
     max_lat = max_latitude(coordinates) + margin_value_coordinate
@@ -190,15 +210,17 @@ def def_file_name(coordinates_list):
 
 
 if __name__ == "__main__":
-    coordinates = ([(-22.816008, -47.075614),
-                    (-22.816639, -47.074891),
-                    (-22.818317, -47.083415),
-                    (-22.820244, -47.085422),
-                    (-22.823953, -47.087718),
-                    (-22.816008, -47.075614)])
+    coordinates = ([(-1.4669727715675633, -48.47476438242888),
+                    (-1.4617914926718831, -48.48735602308006),
+                    (-1.4552257213149151, -48.476854602085865),
+                    (-1.4570295065392669, -48.46451272534284),
+                    (-1.473840715457675, -48.4597131060169)])
     # -47.087718,-22.823953,-47.074891,-22.816008
     # -47.087718,-22.823953,-47.074891,-22.816008
     # -47.246313,-23.0612161,-47.239999,-23.0609999
     test = coordinates_list_bbox(coordinates)
+    a, b, c , d = create_osmnx(coordinates)
+    G = ox.graph_from_bbox(a, b, c, d, network_type='all')
+    fig, ax = ox.plot_graph(G)
     print("Coordinates:", test)
     print("string", coordinates_string(test))
