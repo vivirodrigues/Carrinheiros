@@ -28,7 +28,9 @@ def mean_confidence_interval(data, confidence=0.90):
     return m, m - h, m + h
 
 
-files = ['../data/results/m43.95722491775625_m19.94033806872391_m43.92617870611262_m19.908039298382985']
+files = ['../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_impedance',
+         '../data/results/m43.95722491775625_m19.94033806872391_m43.92617870611262_m19.908039298382985_weight',
+         '../data/results/m43.95722491775625_m19.94033806872391_m43.92617870611262_m19.908039298382985_length']
 
 
 # 12
@@ -41,7 +43,7 @@ for a in range(len(files)):
     eixo_y = []
     y_y_std = []
     media_power = 0
-    dados = dict(openFile(files[a] + '_f'))
+    dados = dict(openFile(files[a]))
 
     if dados != 0:
         # print("File: ", files[a])
@@ -57,7 +59,7 @@ for a in range(len(files)):
     todas_medias.append(media_power)
     # print("tempo", tempo)
 
-
+    """
     eixo_x_2 = []
     eixo_y_2 = []
     y_y_std = []
@@ -70,6 +72,7 @@ for a in range(len(files)):
             eixo_x_2.append(int(i))
             eixo_y_2.append(float(dados.get(str(i))))
             y_y_std.append(0)
+    
 
     print(media_power)
     fig, axs = plt.subplots(2)
@@ -81,7 +84,7 @@ for a in range(len(files)):
     plt.ylabel("Altitude")
 
     plt.show()
-
+    """
 
 
 print(todas_medias)

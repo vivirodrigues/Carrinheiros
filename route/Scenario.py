@@ -51,7 +51,7 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
         try:
             # get the adjacent nodes of the coordinate
             nodes_adjacent, location = Map.adjacent_nodes(i)
-            #print(nodes_adjacent, location)
+            # print(nodes_adjacent, location)
             #coordinates, keys = nearest_edge(G, i)
             #print(coordinates, keys)
 

@@ -52,6 +52,7 @@ def _geolocator(coordinate, name_project):
     while True:
         try:
             # search for the coordinate information
+
             location = geolocator.reverse(coordinate)
             if location.raw:
                 return location
@@ -487,6 +488,7 @@ def adjacent_nodes(coordinate):
                 try:
                     location_1 = geolocator.geocode(search)
                     osm_id = location_1.raw.get('osm_id')
+
                 except:
                     time.sleep(30)
                     continue

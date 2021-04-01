@@ -10,7 +10,7 @@ SPEED = 0.83  # m/s = 3 km/h
 COVERAGE_AREA = 5000  # meters
 BIDIRECTIONAL = True
 TWO_WAY = ['living_street', 'secondary_link', 'tertiary', 'residential', 'unclassified', 'tertiary_link', 'service', 'pedestrian', 'track', 'sidewalk', 'footway', 'crossing']
-IMPEDANCE = 'length'  # 'impedance' #'weight' # 'length'
+IMPEDANCE = 'weight'  # 'impedance' #'weight' # 'length'
 GRADE_FACTOR = False
 SPEED_FACTOR = True
 

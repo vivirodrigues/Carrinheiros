@@ -95,13 +95,14 @@ def cost_path(G, source, target, vehicle_mass):
 
     # updates the weight of all edges of the scenario according
     # to the current weight of the vehicle
-    G = Graph.update_weight(G, vehicle_mass)
+    max_grade = max(list(nx.get_edge_attributes(G, "grade").values()))
+    G = Graph.update_weight(G, vehicle_mass, max_grade)
 
     # finds the shortest path to the destination in the scenario graph
     #path = Heuristics.shortest_path_faster(G, source, target, 'weight')
     #distance, path = Heuristics.bellman_ford(G, source, target, 'weight')
-    #distance, path = Heuristics.bidirectional_dijkstra(G, source, target, 'weight')
-    path = nx.astar_path(G, source, target, weight=IMPEDANCE)#weight='weight')
+    distance, path = Heuristics.bidirectional_dijkstra(G, source, target, weight=IMPEDANCE)
+    #path = nx.astar_path(G, source, target, weight=IMPEDANCE)
 
     # cost to get to the destination:
     # the sum of the weight of all the edges from the path
@@ -109,7 +110,8 @@ def cost_path(G, source, target, vehicle_mass):
 
     # updates the weight of all edges of the scenario according
     # to the current weight of the vehicle
-    G = Graph.update_weight(G, VEHICLE_MASS)
+    max_grade = max(list(nx.get_edge_attributes(G, "grade").values()))
+    G = Graph.update_weight(G, VEHICLE_MASS, max_grade)
 
     return sum_path_costs, path
 

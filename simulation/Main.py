@@ -141,13 +141,12 @@ def run(route, G, dict_edges_net, file_name_json):
 
     while step == 1 or traci.simulation.getMinExpectedNumber() > 0:
 
-        speedI = traci.vehicle.getSpeed("carrinheiro")
+        speed = traci.vehicle.getSpeed("carrinheiro")
 
+        if speed < 0:
+            speed = float(0)
 
-        if speedI < -100:
-            speedI = float(0)
-
-        speed = speedI #* 3.6  # m/s para km/h
+        # speed = speedI #* 3.6  # m/s para km/h
 
         num = Decimal(float(speed)).quantize(0, ROUND_HALF_UP)
 
@@ -357,7 +356,7 @@ def create_route(stop_points, material_weights, json_files):
 
 
 def get_seed(seed_id):
-    seeds = [2009044369, 960703545, 934100682, 1972392646, 1936856304,
+    seeds = [960703545, 2009044369, 934100682, 1972392646, 1936856304,
              186872697, 1859168769, 1598189534, 1822174485,
              1871883252, 605846893, 222735214, 694388766,
              188312339, 2101442385, 2125204119, 2041095833,

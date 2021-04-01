@@ -97,9 +97,7 @@ def _add_margin(coordinates_list, margin_value_coordinate=0.01):
     """
 
     base = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[3], coordinates_list[0]))
-    print("base", base)
     altura = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[1], coordinates_list[2]))
-    print("altura", altura)
     area_original = base * altura
     print("Área original", area_original)
 
@@ -111,11 +109,8 @@ def _add_margin(coordinates_list, margin_value_coordinate=0.01):
     coordinates_list[3] += margin_value_coordinate
 
     base = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[3], coordinates_list[0]))
-    print("base 2", base)
     altura = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[1], coordinates_list[2]))
-    print("altura 2", altura)
     area_nova = base * altura
-    print("Área nova", area_nova)
     print("Área", area_nova - area_original)
 
     return coordinates_list
