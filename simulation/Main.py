@@ -65,19 +65,9 @@ def find_unused_port():
 
 
 def terminate_sumo(sumo):
-    if sumo.returncode != None:
+    if sumo.returncode is not None:
         os.system("taskkill.exe /F /im sumo.exe")
         time.sleep(1)
-    """
-    if sumo.returncode == None:
-        os.kill(sumo.pid, signal.SIGILL)
-        # time.sleep(0.5)
-        if sumo.returncode == None:
-            os.kill(sumo.pid, signal.SIGKILL)
-            # time.sleep(1)
-            if sumo.returncode == None:
-                time.sleep(0.5)
-    """
 
 
 def calculate_power(G, dict_edges_net, id_edge, vehicle_mass, speed):
@@ -90,9 +80,7 @@ def calculate_power(G, dict_edges_net, id_edge, vehicle_mass, speed):
 
     current_force = Graph.force(vehicle_mass, surface_floor, slope)
     power = current_force * speed # * math.cos(slope)
-    #if traci.vehicle.isStopped("carrinheiro") is True:
-    #    power = 0
-    # print("force", current_force, "power", power, "grade", slope, "speed", speed)
+
     return power
 
 
@@ -159,7 +147,7 @@ def run(route, G, dict_edges_net, file_name_json):
         if speedI < -100:
             speedI = float(0)
 
-        speed = speedI * 3.6  # m/s para km/h
+        speed = speedI #* 3.6  # m/s para km/h
 
         num = Decimal(float(speed)).quantize(0, ROUND_HALF_UP)
 
@@ -228,13 +216,14 @@ def run(route, G, dict_edges_net, file_name_json):
         sett = {i: pdfSpeed[i]}
         dicionarioSpeed.update(sett)
     """
+
     print("Total length", total_length, "steps", step)
     traci.close()
     sys.stdout.flush()
-    writeJson(dicionario_force, file_name_json + '_f')
-    writeJson(dicionario_power, file_name_json)
-    writeJson(dicionario_e, file_name_json + '_e')
-    writeJson(incline, file_name_json + '_i')
+    write_json(dicionario_force, file_name_json + '_' + IMPEDANCE + '_f')
+    write_json(dicionario_power, file_name_json + '_' + IMPEDANCE)
+    write_json(dicionario_e, file_name_json + '_' + IMPEDANCE + '_e')
+    write_json(incline, file_name_json + '_' + IMPEDANCE + '_i')
 
     return totalConsumption
 
@@ -256,29 +245,37 @@ def start_simulation(sumo, scenario, output, route, G, dict_edges_net, file_name
         print(e)
         raise
     finally:
-        # print("Terminating SUMO")
         terminate_sumo(sumo)
         unused_port_lock.__exit__()
 
     return consumption
 
 
-def writeJson(content, fileName):
+def write_json(content, fileName):
     with open(fileName + '.json', 'w') as json_file:
         json.dump(content, json_file, separators=(',', ':'), ensure_ascii=False, sort_keys=True, indent=4)
 
 
 def geotiff_transformation(name_file_in, name_file_out):
+
     gdal_command = "gdal_translate -of GTiff -ot Int16 -co TFW=YES " + name_file_in + " " + name_file_out
     process_gdal = subprocess.Popen(gdal_command.split(), stdout=subprocess.PIPE)
     output, error = process_gdal.communicate()
 
 
 def netconvert_geotiff(name_file_osm, name_file_geotiff, name_file_output):
+
     netconvert_command = "netconvert --osm-files " + name_file_osm + " --heightmap.geotiff " + name_file_geotiff + " -o " + name_file_output # + " -t " + " map.typ.xml "
-    # " --remove-edges.by-type highway.footway " + " --remove-edges.isolated " +  " --sidewalks.guess " + " --crossings.guess "  + " --junctions.join-turns " + " True " + " --opposites.guess " + " True "
     process_netconvert = subprocess.Popen(netconvert_command.split(), stdout=subprocess.PIPE)
     output, error = process_netconvert.communicate()
+
+
+def get_work(G, nodes):
+    weight_total = 0
+    for i in range(len(nodes)-1):
+        data_edge = G.get_edge_data(nodes[i], nodes[i+1])
+        weight_total += data_edge.get(0).get('weight')
+    print("TOTAL", weight_total)
 
 
 def create_route(stop_points, material_weights, json_files):
@@ -289,7 +286,6 @@ def create_route(stop_points, material_weights, json_files):
 
     # download the osm file (scenario)
     osm_file_name = OpenSteetMap.file_osm(MAPS_DIRECTORY, stop_points)
-    print(osm_file_name)
 
     if BIDIRECTIONAL is True:
         Map_Simulation.edit_map(osm_file_name)
@@ -307,6 +303,7 @@ def create_route(stop_points, material_weights, json_files):
     G_file_name = Saves.def_file_name(MAPS_DIRECTORY, stop_points, '.graphml')
     file_name_json = Saves.def_file_name('../data/results/', stop_points, '')
     json_files.append(file_name_json)
+    write_json(dict(stop_points), file_name_json + '_coords' + '_' + IMPEDANCE)
 
     # Scenario graph (paths are edges and junctions are nodes)
     G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
@@ -317,12 +314,14 @@ def create_route(stop_points, material_weights, json_files):
     #    print("Entrou aqui")
     #    G = nx.read_graphml(G_file_name, node_type=<type 'str'>)
 
-    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points,
-                                                                                    material_weights, osm_file_name)
+    print("Stop points", stop_points)
 
+    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points,
+                                                                                        material_weights, osm_file_name)
     index_source = list(nodes_coordinates.values()).index(stop_points[0])
     node_source = list(nodes_coordinates.keys())[index_source]
     print("node source", node_source)
+
     index_target = list(nodes_coordinates.values()).index(stop_points[-1])
     node_target = list(nodes_coordinates.keys())[index_target]
     print("target", node_target)
@@ -335,11 +334,15 @@ def create_route(stop_points, material_weights, json_files):
 
     cost_total, paths = Carrinheiro.closest_insertion_path(G, H, node_source, node_target)
 
+    print("cost total", cost_total)
+
     print(paths)
+
     list1 = []
     for i in paths:
         list1 += i[1:]
     print(list1)
+    get_work(G, list1)
 
     sumo_route = []
     for i in paths:
@@ -374,9 +377,6 @@ def get_seed(seed_id):
 
 
 def main():
-    stop_points = [(-22.803707, -47.068984), (-1.4669727715675633, -48.47476438242888),
-                   (-1.4617914926718831, -48.48735602308006), (-1.4552257213149151, -48.476854602085865),
-                   (-1.4570295065392669, -48.46451272534284), (-1.473840715457675, -48.4597131060169)]
 
     material_weights = [(0, 'Kg'), (52, 'Kg'), (10, 'Kg'), (34, 'Kg'), (7, 'Kg'), (99, 'Kg'), (15, 'Kg'), (6, 'Kg'), (9, 'Kg'), (0, 'Kg')]
 
@@ -393,27 +393,15 @@ def main():
     json_files = []
 
     for a in range(0, n_seeds):
-    #for lat in mean_lat:
 
         random.seed(get_seed(a))
-        longitudes = [random.gauss(mean_lon[0], sigma) for i in range(n_points-2)]
-        latitudes = [random.gauss(mean_lat[0], sigma) for i in range(n_points-2)]
+        longitudes = [random.gauss(mean_lon[0], sigma) for i in range(n_points)]
+        latitudes = [random.gauss(mean_lat[0], sigma) for i in range(n_points)]
         stop_points = [(latitudes[i], longitudes[i]) for i in range(len(latitudes))]
-        stop_points.insert(0, (mean_lat[0], mean_lon[0]))
-        stop_points.append((mean_lat[0], mean_lon[0]))  # mesmo ponto inicial e final
-        #stop_points.append(stop_points[0])  # mesmo ponto inicial e final
-        print(get_seed(a), stop_points)
+        stop_points.append((latitudes[0], longitudes[0]))  # mesmo ponto inicial e final
         paths, json_files = create_route(stop_points, material_weights, json_files)
 
     print(json_files)
-    # a += 1
-
-# 67.86501128668172, 96.18983124897602
-
-
-    # paths = create_route(stop_points, material_weights)
-
-    # consumption = start_simulation("sumo", sumo_config, "output.xml", sumo_route)
 
 
 if __name__ == "__main__":
