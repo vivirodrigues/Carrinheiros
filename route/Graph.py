@@ -441,12 +441,19 @@ def work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
     return resultant_work
 
 
+def max_grade_factor(weight_value, max_grade, grade, percentage=0.5):
+    factor_grade = math.exp(grade)/math.exp(max_grade)
+    # print("aaa", weight_value, weight_value * factor_grade)
+    weight_value = weight_value + (weight_value * factor_grade * percentage)
+    return weight_value
+
+
 def impedance(length, grade):
     penalty = grade ** 2
     return length * penalty
 
 
-def update_weight(G, vehicle_mass):
+def update_weight(G, vehicle_mass, max_grade):
     """
     Update all edge weights of the graph G,
     according to current vehicle mass.
@@ -463,10 +470,19 @@ def update_weight(G, vehicle_mass):
 
     for u, v, k, data in G.edges(keys=True, data=True):
 
-        weight = work(vehicle_mass, data['surface'], data['grade'], data['length']) # math.degrees()
-        data['weight'] = max_speed_factor(weight, data['maxspeed'])
-        #data['weight'] = weight
-        data['impedance'] = impedance(data['length'], data['grade_abs'])
+        weight_value = work(vehicle_mass, data['surface'], data['grade'], data['length']) # math.degrees()
+        impedance_value = impedance(data['length'], data['grade_abs'])
+
+        if GRADE_FACTOR:
+            weight_value = max_grade_factor(weight_value, max_grade, data['grade'])
+
+        if SPEED_FACTOR:
+            # avoid dangerous streets (high speeds)
+            weight_value = max_speed_factor(weight_value, data['maxspeed'])
+            impedance_value = max_speed_factor(impedance_value, data['maxspeed'])
+
+        data['weight'] = weight_value
+        data['impedance'] = impedance_value
 
     return G
 
@@ -526,7 +542,8 @@ def configure_graph(G, geotiff_name, stop_points, ad_weights, file_name_osm):
     G = surface(G, file_name_osm)
     G = hypotenuse(G)
     G = maxspeed(G)
-    G = update_weight(G, VEHICLE_MASS)
+    max_grade = max(list(nx.get_edge_attributes(G, "grade").values()))
+    G = update_weight(G, VEHICLE_MASS, max_grade)
 
     save_graph_file(G, GRAPH_NAME)
     #plot_graph(G)
@@ -552,9 +569,10 @@ def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_na
 
     G = maxspeed(G)
 
-    G = update_weight(G, VEHICLE_MASS)
+    max_grade = max(list(nx.get_edge_attributes(G, "grade").values()))
+    G = update_weight(G, VEHICLE_MASS, max_grade)
 
-    plot_graph(G)
+    # plot_graph(G)
 
     # it transforms some edges in two ways streets
     if BIDIRECTIONAL is True:
@@ -588,5 +606,3 @@ if __name__ == '__main__':
     #fig, ax = ox.plot_graph(G2)
 
     save_graph_file(G, '../' + MAPS_DIRECTORY, 'map1')
-
-
