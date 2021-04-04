@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on Thu Apr  1 00:04:00 2021 by Eclipse SUMO sumo Version 1.8.0
+<!-- generated on Sun Apr  4 00:13:41 2021 by Eclipse SUMO sumo Version 1.8.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -28,14 +28,14 @@
     </emissions>
 
     <traci_server>
-        <remote-port value="59977"/>
+        <remote-port value="44063"/>
     </traci_server>
 
 </configuration>
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
-    <tripinfo id="carrinheiro" depart="0.00" departLane="20000000001_0" departPos="5.10" departSpeed="0.00" departDelay="0.00" arrival="33308.00" arrivalLane="-885103960_0" arrivalPos="26.11" arrivalSpeed="1.00" duration="33308.00" routeLength="25448.38" waitingTime="565.00" waitingCount="10" stopTime="0.00" timeLoss="8626.24" rerouteNo="0" devices="tripinfo_carrinheiro emissions_carrinheiro" vType="DEFAULT_VEHTYPE@carrinheiro" speedFactor="1.06" vaporized="teleport">
-        <emissions CO_abs="2545383.220675" CO2_abs="43628527.017261" HC_abs="12604.311007" PMx_abs="1019.463165" NOx_abs="19623.639493" fuel_abs="18755.242883" electricity_abs="0"/>
+    <tripinfo id="carrinheiro" depart="0.00" departLane="60000000001_0" departPos="5.10" departSpeed="0.00" departDelay="0.00" arrival="43677.00" arrivalLane="40000000010_0" arrivalPos="597.79" arrivalSpeed="0.91" duration="43677.00" routeLength="32720.00" waitingTime="139.00" waitingCount="6" stopTime="0.00" timeLoss="10957.08" rerouteNo="0" devices="tripinfo_carrinheiro emissions_carrinheiro" vType="DEFAULT_VEHTYPE@carrinheiro" speedFactor="1.06" vaporized="">
+        <emissions CO_abs="3274837.290841" CO2_abs="56244515.422214" HC_abs="16218.746429" PMx_abs="1311.797237" NOx_abs="25285.603529" fuel_abs="24178.662967" electricity_abs="0"/>
     </tripinfo>
 </tripinfos>

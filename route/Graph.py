@@ -275,7 +275,7 @@ def define_max_speed(highway):
                 'primary_link': 60, 'secondary_link': 40, 'tertiary_link': 40,
                 'living_street': 30, 'service': 30, 'pedestrian': 10,
                 'track': 60, 'sidewalk': 10, 'footway': 10, 'crossing': 10,
-                'steps': 200, 'cycleway': 10000}
+                'steps': 1000, 'cycleway': 80}
 
     max_speed = maxspeed.get(highway)
 
@@ -361,13 +361,13 @@ def max_speed_factor(weight, speed):
     if speed < 21:
         factor = 0
     elif speed < 41:
-        factor = 10
-    elif speed < 61:
         factor = 20
-    elif speed < 81:
+    elif speed < 61:
         factor = 30
-    elif speed < 91:
+    elif speed < 81:
         factor = 40
+    elif speed < 91:
+        factor = 50
     else:
         factor = 5
 

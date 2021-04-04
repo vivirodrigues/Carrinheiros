@@ -159,20 +159,29 @@ def adjacent_nodes(edges_dict):
 
 
 def delete_nodes_osm(osm_file):
+    """
     root = minidom.parse(osm_file).documentElement
 
     x = root.getElementsByTagName("node")
-    #for i in range(len(x)):
-    #    if x[i].getAttribute("id") == str(id_node):
-    #        x[i].parentNode.removeChild(x[i])
 
     for i in range(len(x)):
         if x[i].getAttribute("user") == "Carrinheiro":
+            print("apagando", x[i].getAttribute("id"), x[i].parentNode)
             x[i].parentNode.removeChild(x[i])
 
     with open(osm_file, "w") as fs:
         fs.write(root.toxml())
         fs.close()
+    """
+    tree = ET.ElementTree()
+    tree.parse(osm_file)
+
+    nodes = tree.findall('node')
+    for node in nodes:
+        if node.attrib['user'] == "Carrinheiro":
+            nodes.remove(node)
+
+    tree.write(osm_file)
 
 
 def delete_ways_osm(osm_file):
@@ -218,6 +227,22 @@ def edit_map(osm_file):
             x[i].attributes["v"].value = "residential"
 
     with open(osm_file, "w") as fs:
+        fs.write(root.toxml())
+        fs.close()
+
+
+def allow_vehicle(net_file):
+
+    root = minidom.parse(net_file).documentElement
+
+    # allow the vehicle
+    x = root.getElementsByTagName("lane")
+    for i in range(len(x)):
+        text = x[i].getAttribute("allow")
+        if len(text)> 0:
+            x[i].attributes["allow"].value = text + " " + VEHICLE
+
+    with open(net_file, "w") as fs:
         fs.write(root.toxml())
         fs.close()
 

@@ -1,25 +1,22 @@
-***Starting server on port 59977 ***
-Loading net-file from 'map.net.xml' ... done (1725ms).
+***Starting server on port 44063 ***
+Loading net-file from 'map.net.xml' ... done (1653ms).
 Loading done.
 Simulation version 1.8.0 started with time: 0.00
-Warning: Teleporting vehicle 'carrinheiro'; waited too long (wrong lane), lane='497935312_0', time=33274.00.
-Warning: Vehicle 'carrinheiro' ends teleporting on edge '-885103960', time 33307.00.
-Simulation ended at time: 33309.00
+Simulation ended at time: 43678.00
 Reason: TraCI requested termination.
 Performance: 
- Duration: 32.88s
- Real time factor: 1013.2
- UPS: 1013.171103
+ Duration: 42.74s
+ Real time factor: 1022.07
+ UPS: 1022.042822
 Vehicles: 
  Inserted: 1
  Running: 0
  Waiting: 0
-Teleports: 1 (Wrong Lane: 1)
 Statistics (avg):
- RouteLength: 25448.38
- Speed: 0.76
- Duration: 33308.00
- WaitingTime: 565.00
- TimeLoss: 8626.24
+ RouteLength: 32720.00
+ Speed: 0.75
+ Duration: 43677.00
+ WaitingTime: 139.00
+ TimeLoss: 10957.08
  DepartDelay: 0.00
 

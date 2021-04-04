@@ -28,9 +28,9 @@ def mean_confidence_interval(data, confidence=0.90):
     return m, m - h, m + h
 
 
-files = ['../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_impedance',
-         '../data/results/m43.95722491775625_m19.94033806872391_m43.92617870611262_m19.908039298382985_weight',
-         '../data/results/m43.95722491775625_m19.94033806872391_m43.92617870611262_m19.908039298382985_length']
+files = ['../data/results/m43.95860182171874_m19.937983874844853_m43.92467404757033_m19.904271548474615_impedance',
+         '../data/results/m43.95860182171874_m19.937983874844853_m43.92467404757033_m19.904271548474615_weight',
+         '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_length']
 
 
 # 12
@@ -56,6 +56,7 @@ for a in range(len(files)):
             y_y_std.append(0)
 
     media_power = media_power / len(list(dados.keys()))
+    print("power", media_power)
     todas_medias.append(media_power)
     # print("tempo", tempo)
 

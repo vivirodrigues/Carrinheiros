@@ -16,6 +16,7 @@ def bellman_ford(G, initial_node, target_node, weight):
 
 def bidirectional_dijkstra(G, initial_node, target_node, weight):
     weight = Graph._weight(G, weight)
+    print("dij", initial_node, target_node)
     distance, route = nx.bidirectional_dijkstra(G, initial_node, target_node, weight)
     return distance, route
 

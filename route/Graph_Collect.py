@@ -100,8 +100,8 @@ def cost_path(G, source, target, vehicle_mass):
 
     # finds the shortest path to the destination in the scenario graph
     #path = Heuristics.shortest_path_faster(G, source, target, 'weight')
-    #distance, path = Heuristics.bellman_ford(G, source, target, 'weight')
-    distance, path = Heuristics.bidirectional_dijkstra(G, source, target, weight=IMPEDANCE)
+    distance, path = Heuristics.bellman_ford(G, source, target, 'weight')
+    # distance, path = Heuristics.bidirectional_dijkstra(G, source, target, weight=IMPEDANCE)
     #path = nx.astar_path(G, source, target, weight=IMPEDANCE)
 
     # cost to get to the destination:
