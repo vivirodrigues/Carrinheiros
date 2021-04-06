@@ -51,7 +51,7 @@ def create_graph_route(nodes_coordinates, nodes_mass_increment):
     return H
 
 
-def sum_costs(G, path):
+def sum_costs(G, path, weight = IMPEDANCE):
     """
     This function calculates the sum of the costs
     of a path created according to the geographic
@@ -64,11 +64,13 @@ def sum_costs(G, path):
                     The list must contains the id
                     of nodes of the path.
 
+    :param weight:  String or function
+
     :return:        float
                     The sum of all cost (weight)
                     edges of the path.
     """
-    weight = Graph._weight(G, IMPEDANCE) #'weight')
+    weight = Graph._weight(G, weight) #'weight')
     sum_costs = 0
 
     for i in range(len(path)-1):
@@ -78,7 +80,7 @@ def sum_costs(G, path):
     return sum_costs
 
 
-def cost_path(G, source, target, vehicle_mass):
+def cost_path(G, source, target, vehicle_mass, weight = IMPEDANCE):
     """
     This function calculates the path between source and
     target nodes, and returns it. Besides, calculates the
@@ -100,7 +102,7 @@ def cost_path(G, source, target, vehicle_mass):
 
     # finds the shortest path to the destination in the scenario graph
     #path = Heuristics.shortest_path_faster(G, source, target, 'weight')
-    distance, path = Heuristics.bellman_ford(G, source, target, 'weight')
+    distance, path = Heuristics.bellman_ford(G, source, target, weight=weight) # 'weight')
     # distance, path = Heuristics.bidirectional_dijkstra(G, source, target, weight=IMPEDANCE)
     #path = nx.astar_path(G, source, target, weight=IMPEDANCE)
 

@@ -62,9 +62,15 @@ def nearest_neighbor_path(G, H, node_source, node_target):
 
 
 def closest_insertion_path(G, H, node_source, node_target):
+
     start = time.time()
+
+    # order the visit of the stop points
     route = Heuristics.closest_insertion(G, H, node_source, node_target)
+
+    # create the path to visit all stop points
     cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS)
+
     end = time.time()
     print("Total cost route closest insertion", route, cost_total)
     print("time closest insertion (s)", end - start)

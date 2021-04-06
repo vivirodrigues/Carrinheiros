@@ -453,7 +453,7 @@ def impedance(length, grade):
     return length * penalty
 
 
-def update_weight(G, vehicle_mass, max_grade):
+def update_weight(G, vehicle_mass, max_grade = None):
     """
     Update all edge weights of the graph G,
     according to current vehicle mass.

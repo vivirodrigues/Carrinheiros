@@ -5,6 +5,7 @@ from route import Graph
 import osmnx as ox
 from Constants import *
 from shapely.geometry import Point, LineString
+import numpy as np
 from simulation.Map_Simulation import create_node, create_way, parse_file_tree, node_coordinates, delete_nodes_osm, get_nodes, edges_net, adjacent_nodes, edges_type, delete_ways_osm
 
 
@@ -41,7 +42,6 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
         try:
             # get the adjacent nodes of the coordinate
             nodes_adjacent, location = Map.adjacent_nodes(i)
-            print("i", nodes_adjacent, i)
 
         except:
             print("The ad on the", i, "coordinate is in an invalid area.")
@@ -50,7 +50,6 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
         if len(nodes_adjacent) > 1:
             # id of the adjacent nodes
             keys = list(nodes_adjacent.keys())
-            print("keys", keys)
 
             # coordinates of the adjacent nodes
             coordinates = list(nodes_adjacent.values())
@@ -60,11 +59,9 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
 
             # if the adjacent nodes are not in the graph
             if keys[0] not in G or keys[1] not in G:
-                print("adjacent nodes are not in the graph")
                 coordinates, keys = nearest_edge(G, i)
 
             elif G.has_edge(*e1) or G.has_edge(*e2) is False:
-                print(e1, e2, "are not in the graph")
                 coordinates, keys = nearest_edge(G, i)
 
             line = LineString(coordinates)
@@ -78,11 +75,9 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
                 second_edge = edge_split[1].coords[:]
 
                 nearest_node = first_edge[1]
-                print("nearest", nearest_node, id_nearest_node)
 
                 # create the closest node inside the way
                 G = _add_node(G, nearest_node, id_nearest_node)
-                print("Add", id_nearest_node)
 
                 len_first_edge = calculate_distance(first_edge[0], first_edge[1])
                 len_second_edge = calculate_distance(second_edge[0], second_edge[1])
@@ -94,20 +89,17 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
                     first_node = keys[1]
                     second_node = keys[0]
 
-                print("first node", first_node, "second", second_node)
                 highway = define_highway(G, first_node, second_node)
 
                 # create the edge of the first adjacent node
                 # to the closest node inside the way
                 G.add_edge(id_nearest_node, first_node, length=len_first_edge, highway=highway, oneway='false')
                 G.add_edge(first_node, id_nearest_node, length=len_first_edge, highway=highway, oneway='false')
-                print("add edge", id_nearest_node, first_node)
 
                 # create the edge of the second adjacent node
                 # to the closest node inside the way
                 G.add_edge(id_nearest_node, second_node, length=len_second_edge, highway=highway, oneway='false')
                 G.add_edge(second_node, id_nearest_node, length=len_second_edge, highway=highway, oneway='false')
-                print("add edge", id_nearest_node, second_node)
 
                 G = delete_edge(G, first_node, second_node)
 
@@ -127,17 +119,14 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
                         osm_tag = create_node(osm_tag, str(0), str(0), str(0))
 
                     osm_tag = create_node(osm_tag, str(id_nearest_node), str(nearest_node[0]), str(nearest_node[1]))
-                    print("xml", str(id_nearest_node), str(nearest_node[0]), str(nearest_node[1]))
 
                     # edges between nearest node and first id node
                     osm_tag = create_way(osm_tag, str(id_1adjacent_street1), str(first_node), str(id_nearest_node))
                     osm_tag = create_way(osm_tag, str(id_1adjacent_street2), str(id_nearest_node), str(first_node))
-                    print("xml", str(id_1adjacent_street2), str(id_nearest_node), str(first_node))
 
                     # edges between nearest node and second id node
                     osm_tag = create_way(osm_tag, str(id_2adjacent_street1), str(id_nearest_node), str(second_node))
                     osm_tag = create_way(osm_tag, str(id_2adjacent_street2), str(second_node), str(id_nearest_node))
-                    print("xml", str(id_2adjacent_street2), str(second_node), str(id_nearest_node))
 
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]
@@ -152,7 +141,6 @@ def add_collect_points(G, collect_points, ad_weights, file_name_osm):
                 # get the id of the nearest node
                 # id_node = list(Map.closest_node_id(i, nodes_adjacent).keys())[0]
                 id_node, dist = ox.get_nearest_node(G, i, return_dist=True)
-                print("já existe", id_node, dist)
 
                 if i in ad_weights:
                     weight = ad_weights.get(i)[0]
@@ -383,6 +371,7 @@ def nearest_edge(G, i):
     keys = [0, 0]
 
     keys[0], keys[1], key, shapely, distance_ = ox.get_nearest_edge(G, i, return_geom=True, return_dist=True)
+    # edges_array = ox.get_nearest_nodes(G, np.array([i[1]]), np.array([i[0]]), method='kdtree')
 
     attribute_x = nx.get_node_attributes(G, 'x')
     attribute_y = nx.get_node_attributes(G, 'y')

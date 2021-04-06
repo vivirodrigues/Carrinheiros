@@ -107,7 +107,7 @@ def calculate_length(G, dict_edges_net, id_edge):
     return data_edge.get(0).get('length')
 
 
-def run(route, G, dict_edges_net, file_name_json):
+def run(route, G, dict_edges_net, file_name_json, edges_weight):
 
     power = []
     energy = []
@@ -131,13 +131,20 @@ def run(route, G, dict_edges_net, file_name_json):
 
     dados = []
 
+    vehicle_weight = VEHICLE_MASS
+    path_traveled = []
+
+    vehicle_id = "carrinheiro"
+
     # adition = Simulation.Vehicles.add1(traci)
     traci.route.add("path", route)
-    traci.vehicle.add("carrinheiro", "path")# , departLane="best")
-    # traci.vehicle.setParameter("carrinheiro", "carFollowModel", "KraussPS")
-    traci.vehicle.setVehicleClass("carrinheiro", "ignoring")
-    traci.vehicle.setShapeClass("carrinheiro", VEHICLE)
-    traci.vehicle.setMaxSpeed("carrinheiro", 1)  # aprox 8 km/h
+    traci.vehicle.add(vehicle_id, "path")# , departLane="best")
+    traci.vehicle.setParameter("carrinheiro", "carFollowModel", "KraussPS")
+    traci.vehicle.setVehicleClass(vehicle_id, "ignoring")
+    traci.vehicle.setShapeClass(vehicle_id, VEHICLE)
+    traci.vehicle.setEmissionClass(vehicle_id, "Zero")
+    traci.vehicle.setMaxSpeed(vehicle_id, 1)  # aprox 8 km/h
+
     # traci.vehicle.setLateralAlignment("carrinheiro", "right")  # or "nice"
 
     while step == 1 or traci.simulation.getMinExpectedNumber() > 0:
@@ -176,16 +183,24 @@ def run(route, G, dict_edges_net, file_name_json):
         if len(edge_id) > 0:
             if step > 1 and edge_id[0] != ":":
                 inclination.append(z)
-                power.append(calculate_power(G, dict_edges_net, edge_id, 110, speed))
-                force.append(calculate_force(G, dict_edges_net, edge_id, 110, speed))
-                energy.append(calculate_energy(110, speed, float(z)))
-                if calculate_power(G, dict_edges_net, edge_id, 110, speed) > 500:
-                    print("z", z, "Edge", edge_id, Map_Simulation.edges_to_nodes(edge_id, dict_edges_net))
+                power.append(calculate_power(G, dict_edges_net, edge_id, vehicle_weight, speed))
+                force.append(calculate_force(G, dict_edges_net, edge_id, vehicle_weight, speed))
+                energy.append(calculate_energy(vehicle_weight, speed, float(z)))
 
                 if edge_id != before_edge_id:
-                    #print("Edge", edge_id, Map_Simulation.edges_to_nodes(edge_id, dict_edges_net), "f", calculate_force(G, dict_edges_net, edge_id, 110, speed))
                     total_length += calculate_length(G, dict_edges_net, edge_id)
+
+                    # if the edge is a stop point and the edge has not yet been traveled
+                    if edge_id in list(edges_weight.keys()) and edge_id not in path_traveled:
+
+                        # the vehicle needs to stop to pick up the material
+                        traci.vehicle.slowDown(vehicle_id, 0, 5)
+
+                        # weight is added to the vehicle
+                        vehicle_weight += edges_weight.get(edge_id)
+
                     before_edge_id = edge_id
+                    path_traveled.append(edge_id)
 
         traci.simulationStep()
         vehicles = traci.simulation.getEndingTeleportIDList()
@@ -236,7 +251,7 @@ def run(route, G, dict_edges_net, file_name_json):
     return totalConsumption
 
 
-def start_simulation(sumo, scenario, output, route, G, dict_edges_net, file_name_json):
+def start_simulation(sumo, scenario, output, route, G, dict_edges_net, file_name_json, edges_weight):
     unused_port_lock = UnusedPortLock()
     unused_port_lock.__enter__()
     remote_port = find_unused_port()
@@ -248,7 +263,7 @@ def start_simulation(sumo, scenario, output, route, G, dict_edges_net, file_name
 
     try:
         traci.init(remote_port)
-        consumption = run(route, G, dict_edges_net, file_name_json)
+        consumption = run(route, G, dict_edges_net, file_name_json, edges_weight)
     except Exception as e:
         print(e)
         raise
@@ -286,6 +301,25 @@ def get_work(G, nodes):
     print("TOTAL", weight_total)
 
 
+def calculate_work_total(G, paths, nodes_mass_increment):
+
+    sum_path_costs = 0
+    vehicle_mass = VEHICLE_MASS
+
+    for i in paths:
+
+        # updates the weight of all edges of the scenario according
+        # to the current weight of the vehicle
+        G = Graph.update_weight(G, vehicle_mass)
+
+        sum_path_costs += Graph_Collect.sum_costs(G, i, 'weight')
+        vehicle_mass += nodes_mass_increment.get(i[-1])
+
+        G = Graph.update_weight(G, VEHICLE_MASS)
+
+    return sum_path_costs
+
+
 def create_route(stop_points, material_weights, json_files):
 
     name_file_net = 'map.net.xml'
@@ -311,7 +345,6 @@ def create_route(stop_points, material_weights, json_files):
     G_file_name = Saves.def_file_name(MAPS_DIRECTORY, stop_points, '.graphml')
     file_name_json = Saves.def_file_name('../data/results/', stop_points, '')
     json_files.append(file_name_json)
-    write_json(dict(stop_points), file_name_json + '_coords' + '_' + IMPEDANCE)
 
     # Scenario graph (paths are edges and junctions are nodes)
     G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
@@ -323,7 +356,6 @@ def create_route(stop_points, material_weights, json_files):
     #    G = nx.read_graphml(G_file_name, node_type=<type 'str'>)
 
     print("Stop points", stop_points)
-    print("pesos", material_weights)
 
     G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points,
                                                                                         material_weights, osm_file_name)
@@ -342,22 +374,16 @@ def create_route(stop_points, material_weights, json_files):
     dict_edges_net = Map_Simulation.edges_net(name_file_net)
     Map_Simulation.allow_vehicle(name_file_net)
 
-    """
-    fig, ax = ox.plot_graph_route(G, [300000000001, 300000000011, 5101313197], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [60649312, 300000000010, 300000000009], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [60649312, 300000000009, 60649313], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [1083142363, 300000000008, 321050092], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [321050068, 300000000007, 2277624885], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [29160455, 300000000006, 29124056], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [2309506849, 300000000005, 28109328], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [994509664, 300000000004, 1487183486], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [28800987, 300000000003, 28800988], route_linewidth=6, node_size=0)
-    fig, ax = ox.plot_graph_route(G, [2314391096, 300000000002, 2314391124], route_linewidth=6, node_size=0,
-                                  bgcolor='w')
-    """
-
     cost_total, paths = Carrinheiro.closest_insertion_path(G, H, node_source, node_target)
 
+    if IMPEDANCE != 'weight':
+        cost_total = calculate_work_total(G, paths, nodes_mass_increment)
+
+    result_work = {}
+    [result_work.update([(str(i), [stop_points[i]])]) for i in range(len(stop_points))]
+    result_work.update([('work_total', cost_total)])
+    print(result_work)
+    write_json(result_work, file_name_json + '_coords' + '_' + IMPEDANCE)
     print("cost total", cost_total)
 
     print(paths)
@@ -366,15 +392,20 @@ def create_route(stop_points, material_weights, json_files):
     for i in paths:
         list1 += i[1:]
     print(list1)
-    get_work(G, list1)
 
     sumo_route = []
+    edges_stop = []
+    edges_weight = {}
     for i in paths:
-        sumo_route.extend(Map_Simulation.nodes_to_edges(i, dict_edges_net))
+        route_edges = Map_Simulation.nodes_to_edges(i, dict_edges_net)
+        edges_stop.append(route_edges[0])
+        sumo_route.extend(route_edges)
+
+    [edges_weight.update([(edges_stop[i], nodes_mass_increment.get(paths[i][0]))]) for i in range(len(edges_stop))]
 
     print(sumo_route)
 
-    start_simulation('sumo', sumo_config, 'out.xml', sumo_route, G, dict_edges_net, file_name_json)
+    start_simulation('sumo', sumo_config, file_name_json + '_' + IMPEDANCE + '.xml', sumo_route, G, dict_edges_net, file_name_json, edges_weight)
 
     fig, ax = ox.plot_graph_route(G, list1, route_linewidth=6, node_size=0, bgcolor='w')
 
@@ -403,9 +434,16 @@ def get_seed(seed_id):
 
 def main():
 
-    material_weights = [(0, 'Kg'), (52, 'Kg'), (10, 'Kg'), (34, 'Kg'), (7, 'Kg'), (99, 'Kg'), (15, 'Kg'), (6, 'Kg'), (9, 'Kg'), (0, 'Kg')]
+    # material_weights = [(0, 'Kg'), (52, 'Kg'), (10, 'Kg'), (34, 'Kg'), (7, 'Kg'), (99, 'Kg'), (15, 'Kg'), (6, 'Kg'), (9, 'Kg'), (0, 'Kg')]
 
     n_points = 10
+
+    random.seed(get_seed(0))
+    mass_increments = [random.randint(0, 50) for i in range(n_points-2)]
+    material_weights = [(mass_increments[i], 'Kg') for i in range(n_points-2)]
+    material_weights.append((0, 'Kg'))
+    material_weights.insert(0, (0, 'Kg'))
+
     sigma = 0.005  # standard deviation
 
     # scenarios: Campinas, Belém, BH
