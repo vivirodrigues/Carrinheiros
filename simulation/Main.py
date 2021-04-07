@@ -1,6 +1,6 @@
 from __future__ import division
 
-import math
+import numpy as np
 import os
 import sys
 import subprocess
@@ -320,6 +320,43 @@ def calculate_work_total(G, paths, nodes_mass_increment):
     return sum_path_costs
 
 
+def verify_graph_exists(osm_file_name, stop_points):
+    G = ox.load_graphml(osm_file_name + '.graphml')
+    lats = [a_tuple[0] for a_tuple in stop_points]
+    lons = [a_tuple[1] for a_tuple in stop_points]
+    nodes = [(n, d) for n, d in G.nodes(data=True) if d['y'] in lats and d['x'] in lons]
+    if len(nodes) == len(stop_points):
+        return True
+    else:
+        return False
+
+
+def nodes_data(osm_file_name, stop_points, material_weights):
+
+    G = ox.load_graphml(osm_file_name + '.graphml')
+    lats = [a_tuple[0] for a_tuple in stop_points]
+    lons = [a_tuple[1] for a_tuple in stop_points]
+
+    nodes_coordinates = {}
+    nodes_mass_increment = {}
+
+    [nodes_coordinates.update([(list(G.neighbors(n))[0], (d['y'], d['x']))]) \
+     for n, d in G.nodes(data=True) if d['y'] in lats and d['x'] in lons and len(list(G.neighbors(n))) == 1]
+
+    [nodes_mass_increment.update([(list(G.neighbors(n))[0], material_weights.get((d['y'], d['x']))[0])]) \
+     for n, d in G.nodes(data=True) if d['y'] in lats and d['x'] in lons and len(list(G.neighbors(n))) == 1]
+
+    if len(list(nodes_coordinates.keys())) != len(stop_points):
+
+        [nodes_coordinates.update([(n, (d['y'], d['x']))]) for n, d in G.nodes(data=True) if
+         d['y'] in lats and d['x'] in lons]
+
+        [nodes_mass_increment.update([(n, material_weights.get((d['y'], d['x']))[0])]) \
+         for n, d in G.nodes(data=True) if d['y'] in lats and d['x'] in lons]
+
+    return G, nodes_coordinates, nodes_mass_increment
+
+
 def create_route(stop_points, material_weights, json_files):
 
     name_file_net = 'map.net.xml'
@@ -328,9 +365,6 @@ def create_route(stop_points, material_weights, json_files):
 
     # download the osm file (scenario)
     osm_file_name = OpenSteetMap.file_osm(MAPS_DIRECTORY, stop_points)
-
-    if BIDIRECTIONAL is True:
-        Map_Simulation.edit_map(osm_file_name)
 
     # download the GeoTiff file (scenario)
     geotiff_name = GeoTiff.geotiff(MAPS_DIRECTORY, stop_points)
@@ -346,19 +380,22 @@ def create_route(stop_points, material_weights, json_files):
     file_name_json = Saves.def_file_name('../data/results/', stop_points, '')
     json_files.append(file_name_json)
 
-    # Scenario graph (paths are edges and junctions are nodes)
-    G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
+    if verify_graph_exists(osm_file_name, stop_points) is True:
 
-    #if Saves.verify_file_exists(coordinates_list, G_file_name) is False:
+        G, nodes_coordinates, nodes_mass_increment = nodes_data(osm_file_name, stop_points, material_weights)
 
-    #else:
-    #    print("Entrou aqui")
-    #    G = nx.read_graphml(G_file_name, node_type=<type 'str'>)
+    else:
 
-    print("Stop points", stop_points)
+        Map_Simulation.delete_osm_items(osm_file_name)
 
-    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points,
-                                                                                        material_weights, osm_file_name)
+        if BIDIRECTIONAL is True:
+            Map_Simulation.edit_map(osm_file_name)
+
+        # Scenario graph (paths are edges and junctions are nodes)
+        G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
+
+        G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights, osm_file_name)
+
     index_source = list(nodes_coordinates.values()).index(stop_points[0])
     node_source = list(nodes_coordinates.keys())[index_source]
     print("node source", node_source)
@@ -369,12 +406,20 @@ def create_route(stop_points, material_weights, json_files):
 
     H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
 
-    Graph.save_graph_file(G, G_file_name)
+    start = time.time()
 
     dict_edges_net = Map_Simulation.edges_net(name_file_net)
+
+    end = time.time()
+    print("time 2", end - start)
+    start = time.time()
+
     Map_Simulation.allow_vehicle(name_file_net)
 
-    cost_total, paths = Carrinheiro.closest_insertion_path(G, H, node_source, node_target)
+    end = time.time()
+    print("time 3", end - start)
+
+    cost_total, paths = Carrinheiro.nearest_neighbor_path(G, H, node_source, node_target)
 
     if IMPEDANCE != 'weight':
         cost_total = calculate_work_total(G, paths, nodes_mass_increment)
@@ -382,7 +427,7 @@ def create_route(stop_points, material_weights, json_files):
     result_work = {}
     [result_work.update([(str(i), [stop_points[i]])]) for i in range(len(stop_points))]
     result_work.update([('work_total', cost_total)])
-    print(result_work)
+    result_work.update([('path', paths)])
     write_json(result_work, file_name_json + '_coords' + '_' + IMPEDANCE)
     print("cost total", cost_total)
 
@@ -401,14 +446,15 @@ def create_route(stop_points, material_weights, json_files):
         edges_stop.append(route_edges[0])
         sumo_route.extend(route_edges)
 
-    [edges_weight.update([(edges_stop[i], nodes_mass_increment.get(paths[i][0]))]) for i in range(len(edges_stop))]
+    print("sumo", sumo_route)
 
-    print(sumo_route)
+    [edges_weight.update([(edges_stop[i], nodes_mass_increment.get(paths[i][0]))]) for i in range(len(edges_stop))]
 
     start_simulation('sumo', sumo_config, file_name_json + '_' + IMPEDANCE + '.xml', sumo_route, G, dict_edges_net, file_name_json, edges_weight)
 
-    fig, ax = ox.plot_graph_route(G, list1, route_linewidth=6, node_size=0, bgcolor='w')
-
+    # fig, ax = ox.plot_graph_route(G, list1, route_linewidth=6, node_size=0, bgcolor='w')
+    fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=6, node_size=0, bgcolor='w')
+    
     return paths, json_files
 
 
@@ -434,12 +480,11 @@ def get_seed(seed_id):
 
 def main():
 
-    # material_weights = [(0, 'Kg'), (52, 'Kg'), (10, 'Kg'), (34, 'Kg'), (7, 'Kg'), (99, 'Kg'), (15, 'Kg'), (6, 'Kg'), (9, 'Kg'), (0, 'Kg')]
-
     n_points = 10
+    max_mass_material = 50
 
     random.seed(get_seed(0))
-    mass_increments = [random.randint(0, 50) for i in range(n_points-2)]
+    mass_increments = [random.randint(0, max_mass_material) for i in range(n_points-2)]
     material_weights = [(mass_increments[i], 'Kg') for i in range(n_points-2)]
     material_weights.append((0, 'Kg'))
     material_weights.insert(0, (0, 'Kg'))
@@ -462,8 +507,7 @@ def main():
         longitudes = [random.gauss(mean_lon[0], sigma) for i in range(n_points)]
         latitudes = [random.gauss(mean_lat[0], sigma) for i in range(n_points)]
         stop_points = [(latitudes[i], longitudes[i]) for i in range(len(latitudes))]
-        #stop_points.append((latitudes[0], longitudes[0]))  # mesmo ponto inicial e final
-        test = [materials.update([((latitudes[i], longitudes[i]), material_weights[i])]) for i in range(len(latitudes))]
+        [materials.update([((latitudes[i], longitudes[i]), material_weights[i])]) for i in range(len(latitudes))]
         paths, json_files = create_route(stop_points, materials, json_files)
 
     print(json_files)
