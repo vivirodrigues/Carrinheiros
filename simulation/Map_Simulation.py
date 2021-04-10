@@ -1,5 +1,3 @@
-import csv
-from xml.etree.ElementTree import Element, SubElement, Comment, tostring
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from collections import defaultdict
@@ -93,9 +91,10 @@ def edges_net(name_net_xml):
     edges = get_edges(file)
     #  {'id_node_from', 'id_node_to'): 'id_edge'}
     edges_dict = {}
-    for i in edges:
-        if i.attributes['id'].value[0] != ':':
-            edges_dict.update([((int(i.attributes['from'].value), int(i.attributes['to'].value)), str(i.attributes['id'].value))])
+    #for i in edges:
+    #    if i.attributes['id'].value[0] != ':':
+    #        edges_dict.update([((int(i.attributes['from'].value), int(i.attributes['to'].value)), str(i.attributes['id'].value))])
+    [edges_dict.update([((int(i.attributes['from'].value), int(i.attributes['to'].value)), str(i.attributes['id'].value))]) for i in edges if i.attributes['id'].value[0] != ':']
 
     return edges_dict
 
@@ -158,45 +157,17 @@ def adjacent_nodes(edges_dict):
     return result
 
 
-def delete_nodes_osm(osm_file):
-    """
-    root = minidom.parse(osm_file).documentElement
-
-    x = root.getElementsByTagName("node")
-
-    for i in range(len(x)):
-        if x[i].getAttribute("user") == "Carrinheiro":
-            print("apagando", x[i].getAttribute("id"), x[i].parentNode)
-            x[i].parentNode.removeChild(x[i])
-
-    with open(osm_file, "w") as fs:
-        fs.write(root.toxml())
-        fs.close()
-    """
-    tree = ET.ElementTree()
-    tree.parse(osm_file)
-
-    nodes = tree.findall('node')
-    for node in nodes:
-        if node.attrib['user'] == "Carrinheiro":
-            nodes.remove(node)
+def delete_osm_items(osm_file, attrib='Carrinheiro'):
+    tree = ET.parse(osm_file)
+    for node in tree.iter():
+        for child in node[:]:
+            try:
+                if child.attrib['user'] == attrib:
+                    node.remove(child)
+            except:
+                pass
 
     tree.write(osm_file)
-
-
-def delete_ways_osm(osm_file):
-    root = minidom.parse(osm_file).documentElement
-
-    x = root.getElementsByTagName("way")
-
-    for i in range(len(x)):
-        if x[i].getAttribute("user") == "Carrinheiro":
-            # if x[i].getAttribute("v") == 'roundabout' or x[i].getAttribute("k") == 'restriction' or x[i].getAttribute("v") == 'restriction':
-            x[i].parentNode.removeChild(x[i])
-
-    with open(osm_file, "w") as fs:
-        fs.write(root.toxml())
-        fs.close()
 
 
 def edit_map(osm_file):
@@ -237,9 +208,10 @@ def allow_vehicle(net_file):
 
     # allow the vehicle
     x = root.getElementsByTagName("lane")
+
     for i in range(len(x)):
         text = x[i].getAttribute("allow")
-        if len(text)> 0:
+        if len(text) > 0:
             x[i].attributes["allow"].value = text + " " + VEHICLE
 
     with open(net_file, "w") as fs:
@@ -251,10 +223,11 @@ if __name__ == '__main__':
 
     # print(nodes[0].attributes['lon'].value)
 
-    file_2 = parse_file_tree('../data/maps/map.osm')
-    osm_tag = file_2.getroot()
+    #file_2 = parse_file_tree('../data/maps/map.osm')
+    # osm_tag = file_2.getroot()
 
-    a = 'map.net.xml'
+    a = '../data/maps/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925.osm'
+    delete_osm_items(a)
 
     #dictionary = {}
     #for node in file_2.iter('node'):

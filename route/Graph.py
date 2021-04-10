@@ -12,6 +12,7 @@ from route import Scenario
 import xml.dom.minidom
 from collections import Counter
 from simulation import Main
+import time
 
 
 def set_node_elevation(G, name_file_geotiff):
@@ -340,6 +341,22 @@ def maxspeed(G):
     return G
 
 
+def travel_time(G):
+
+    hwy_speeds = {'motorway': 110, 'trunk': 80, 'primary': 80,
+                  'secondary': 60, 'tertiary': 40, 'residential': 30,
+                  'unclassified': 60, 'motorway_link': 80, 'trunk_link': 80,
+                  'primary_link': 60, 'secondary_link': 40, 'tertiary_link': 40,
+                  'living_street': 30, 'service': 30, 'pedestrian': 10,
+                  'track': 60, 'sidewalk': 10, 'footway': 10, 'crossing': 10,
+                  'cycleway': 20}
+
+    G = ox.add_edge_speeds(G, hwy_speeds)
+    G = ox.add_edge_travel_times(G)
+
+    return G
+
+
 def max_speed_factor(weight, speed):
     """
     This function multiplies the weight of the edge by a factor,
@@ -443,7 +460,6 @@ def work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
 
 def max_grade_factor(weight_value, max_grade, grade, percentage=0.5):
     factor_grade = math.exp(grade)/math.exp(max_grade)
-    # print("aaa", weight_value, weight_value * factor_grade)
     weight_value = weight_value + (weight_value * factor_grade * percentage)
     return weight_value
 
@@ -551,7 +567,7 @@ def configure_graph(G, geotiff_name, stop_points, ad_weights, file_name_osm):
     return G, nodes_and_coordinates, nodes_and_weights
 
 
-def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_name_osm):
+def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_name_osm, G_file):
 
     G, nodes_coordinates, nodes_weights = Scenario.add_collect_points(G, stop_points, ad_weights, file_name_osm)
 
@@ -569,18 +585,17 @@ def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_na
 
     G = maxspeed(G)
 
+    G = travel_time(G)
+
     max_grade = max(list(nx.get_edge_attributes(G, "grade").values()))
     G = update_weight(G, VEHICLE_MASS, max_grade)
-
-    # plot_graph(G)
 
     # it transforms some edges in two ways streets
     if BIDIRECTIONAL is True:
         add_edges_G = [(v, u, data) for u, v, k, data in G.edges(keys=True, data=True) if G.has_edge(*(v, u)) is False and data['highway'] in TWO_WAY]
-        # print("adicioanndo", add_edges_G)
         G.add_edges_from(add_edges_G)
 
-    # plot_graph(G)
+    save_graph_file(G, G_file)
 
     return G, nodes_coordinates, nodes_weights
 
@@ -593,18 +608,18 @@ if __name__ == '__main__':
     #nodes = list(G.nodes)
     #G = surface(G, '../' + MAPS_DIRECTORY, name_osm)
     #G = hypotenuse(G)
-    #G = maxspeed(G)
+    G = maxspeed(G)
+    G = travel_time(G)
     #G = update_weight(G, 10)
 
-    G2 = G.copy()
+    #G2 = G.copy()
     fig, ax = ox.plot_graph(G)
-    deadends = [(u, v) for u, v, k, data in G.edges(keys=True, data=True) if data['highway'] == 'footway']
-    print(deadends)
-    G2.remove_nodes_from(deadends)
-    fig, ax = ox.plot_graph(G2)
+    #deadends = [(u, v) for u, v, k, data in G.edges(keys=True, data=True) if data['highway'] == 'footway']
+    #print(deadends)
+    #G2.remove_nodes_from(deadends)
+    #fig, ax = ox.plot_graph(G2)
     #G2.remove_nodes_from(deadends)
     #fig, ax = ox.plot_graph(G2)
 
-    save_graph_file(G, '../' + MAPS_DIRECTORY, 'map1')
 
 

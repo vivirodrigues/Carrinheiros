@@ -8,7 +8,7 @@ import random
 import socket
 import threading
 import time
-import itertools
+from route import Scenario
 import json
 from decimal import Decimal, ROUND_HALF_UP
 from Constants import *
@@ -89,6 +89,15 @@ def calculate_energy(vehicle_mass, speed, z):
     return Em
 
 
+def time_streets(G, dict_edges_net, id_edge):
+    nodes = Map_Simulation.edges_to_nodes(id_edge, dict_edges_net)
+    data_edge = G.get_edge_data(nodes[0], nodes[1])
+
+    max_speed = data_edge.get(0).get('maxspeed')
+
+    return float(max_speed)
+
+
 def calculate_force(G, dict_edges_net, id_edge, vehicle_mass, speed):
     nodes = Map_Simulation.edges_to_nodes(id_edge, dict_edges_net)
     data_edge = G.get_edge_data(nodes[0], nodes[1])
@@ -116,7 +125,8 @@ def run(route, G, dict_edges_net, file_name_json, edges_weight):
     dicionario_power = {}
     dicionario_e = {}
     dicionario_force = {}
-    dicionario_pdf = {}
+    pdf_power_dict = {}
+    pdf_max_speed_dict = {}
 
     incline = {}
     inclination = []
@@ -126,8 +136,7 @@ def run(route, G, dict_edges_net, file_name_json, edges_weight):
     before_edge_id = 0
 
     step = 1
-    consumption = 0
-    totalConsumption = 0
+    max_speeds = []
 
     dados = []
 
@@ -159,33 +168,25 @@ def run(route, G, dict_edges_net, file_name_json, edges_weight):
 
         # speedList.append(speed)
 
-        # traci.vehicle.setSpeed("caminhao",speed)
-        slope = traci.vehicle.getSlope("carrinheiro")
-        acceleration = traci.vehicle.getAcceleration("carrinheiro")
+        slope = traci.vehicle.getSlope(vehicle_id)
+        acceleration = traci.vehicle.getAcceleration(vehicle_id)
 
-        # consumption = calculate_real_fuel2(speedI, acceleration, slope)
-
-        if consumption < 0:
-            consumption = float(0)
-        num = Decimal(float(consumption)).quantize(0, ROUND_HALF_UP)
-
-        # pdfFuel[int(num)] += 1
         total += 1
 
-        # fuelList.append(consumption)
-
-        totalConsumption += consumption
-
-        x, y, z = traci.vehicle.getPosition3D("carrinheiro")
+        x, y, z = traci.vehicle.getPosition3D(vehicle_id)
         dados.append({"x": x, "y": y, "z": z, "slope": slope})
 
-        edge_id = traci.vehicle.getRoadID("carrinheiro")
+        edge_id = traci.vehicle.getRoadID(vehicle_id)
         if len(edge_id) > 0:
+
             if step > 1 and edge_id[0] != ":":
+
                 inclination.append(z)
                 power.append(calculate_power(G, dict_edges_net, edge_id, vehicle_weight, speed))
                 force.append(calculate_force(G, dict_edges_net, edge_id, vehicle_weight, speed))
                 energy.append(calculate_energy(vehicle_weight, speed, float(z)))
+
+                max_speeds.append(time_streets(G, dict_edges_net, edge_id))
 
                 if edge_id != before_edge_id:
                     total_length += calculate_length(G, dict_edges_net, edge_id)
@@ -230,25 +231,39 @@ def run(route, G, dict_edges_net, file_name_json, edges_weight):
     max_power = max(power)
     pdf_power = [0] * (int(max_power) + 10)
 
+    max_speed = max(max_speeds)
+    pdf_max_speeds = [0] * (int(max_speed) + 10)
+
     for i in power:
         num = Decimal(float(i)).quantize(0, ROUND_HALF_UP)
         pdf_power[int(num)] += 1
 
     for i in range(len(pdf_power)):
-        pdf_power[i] = (pdf_power[i] / total) * 100
+        pdf_power[i] = (pdf_power[i] / len(power)) * 100
         sett = {i: pdf_power[i]}
-        dicionario_pdf.update(sett)
+        pdf_power_dict.update(sett)
+
+    for i in max_speeds:
+        # num = Decimal(float(i)).quantize(0, ROUND_HALF_UP)
+        #pdf_max_speeds[int(num)] += 1
+        pdf_max_speeds[int(i)] += 1
+
+    for i in range(len(pdf_max_speeds)):
+        pdf_max_speeds[i] = (pdf_max_speeds[i] / len(max_speeds)) * 100
+        sett = {i: pdf_max_speeds[i]}
+        pdf_max_speed_dict.update(sett)
 
     print("Total length", total_length, "steps", step)
     traci.close()
     sys.stdout.flush()
-    write_json(dicionario_pdf, file_name_json + '_' + IMPEDANCE + '_pdf')
-    write_json(dicionario_force, file_name_json + '_' + IMPEDANCE + '_f')
-    write_json(dicionario_power, file_name_json + '_' + IMPEDANCE)
-    write_json(dicionario_e, file_name_json + '_' + IMPEDANCE + '_e')
-    write_json(incline, file_name_json + '_' + IMPEDANCE + '_i')
+    write_json(pdf_power_dict, file_name_json + '_' + IMPEDANCE + '_pdf' + '_speed_' + str(SPEED_FACTOR))
+    write_json(pdf_max_speed_dict, file_name_json + '_' + IMPEDANCE + '_pdf_speeds_' + str(SPEED_FACTOR))
+    write_json(dicionario_force, file_name_json + '_' + IMPEDANCE + '_f' + '_speed_' + str(SPEED_FACTOR))
+    write_json(dicionario_power, file_name_json + '_' + IMPEDANCE + '_speed_' + str(SPEED_FACTOR))
+    write_json(dicionario_e, file_name_json + '_' + IMPEDANCE + '_e' + '_speed_' + str(SPEED_FACTOR))
+    write_json(incline, file_name_json + '_' + IMPEDANCE + '_i' + '_speed_' + str(SPEED_FACTOR))
 
-    return totalConsumption
+    return total_length
 
 
 def start_simulation(sumo, scenario, output, route, G, dict_edges_net, file_name_json, edges_weight):
@@ -320,20 +335,23 @@ def calculate_work_total(G, paths, nodes_mass_increment):
     return sum_path_costs
 
 
-def verify_graph_exists(osm_file_name, stop_points):
-    G = ox.load_graphml(osm_file_name + '.graphml')
-    lats = [a_tuple[0] for a_tuple in stop_points]
-    lons = [a_tuple[1] for a_tuple in stop_points]
-    nodes = [(n, d) for n, d in G.nodes(data=True) if d['y'] in lats and d['x'] in lons]
-    if len(nodes) == len(stop_points):
-        return True
-    else:
-        return False
+def verify_graph_exists(file_name, stop_points, coordinates_list):
+
+    try:
+        G = ox.load_graphml(file_name)
+        lats = [a_tuple[0] for a_tuple in stop_points]
+        lons = [a_tuple[1] for a_tuple in stop_points]
+        nodes = [(n, d) for n, d in G.nodes(data=True) if d['y'] in lats and d['x'] in lons]
+        if len(nodes) == len(stop_points):
+            return True
+    except:
+        pass
+    return False
 
 
-def nodes_data(osm_file_name, stop_points, material_weights):
+def nodes_data(file_name, stop_points, material_weights, file_osm):
 
-    G = ox.load_graphml(osm_file_name + '.graphml')
+    G = ox.load_graphml(file_name)
     lats = [a_tuple[0] for a_tuple in stop_points]
     lons = [a_tuple[1] for a_tuple in stop_points]
 
@@ -354,6 +372,8 @@ def nodes_data(osm_file_name, stop_points, material_weights):
         [nodes_mass_increment.update([(n, material_weights.get((d['y'], d['x']))[0])]) \
          for n, d in G.nodes(data=True) if d['y'] in lats and d['x'] in lons]
 
+    Scenario.simulation_edit_graph(G, file_osm)
+
     return G, nodes_coordinates, nodes_mass_increment
 
 
@@ -364,10 +384,11 @@ def create_route(stop_points, material_weights, json_files):
     geotiff_name_out = MAPS_DIRECTORY + 'out.tif'
 
     # download the osm file (scenario)
-    osm_file_name = OpenSteetMap.file_osm(MAPS_DIRECTORY, stop_points)
+    osm_file = OpenSteetMap.file_osm(MAPS_DIRECTORY, stop_points)
 
     # download the GeoTiff file (scenario)
     geotiff_name = GeoTiff.geotiff(MAPS_DIRECTORY, stop_points)
+    print("geotiff", geotiff_name)
 
     geotiff_name = MAPS_DIRECTORY + geotiff_name + '.tif'
 
@@ -376,25 +397,27 @@ def create_route(stop_points, material_weights, json_files):
     max_lat, min_lat, max_lon, min_lon = Coordinates.create_osmnx(stop_points)
 
     coordinates_list = Coordinates.coordinates_list_bbox(stop_points)
-    G_file_name = Saves.def_file_name(MAPS_DIRECTORY, stop_points, '.graphml')
+    G_file = Saves.def_file_name(MAPS_DIRECTORY, stop_points, '.graphml')
     file_name_json = Saves.def_file_name('../data/results/', stop_points, '')
     json_files.append(file_name_json)
 
-    if verify_graph_exists(osm_file_name, stop_points) is True:
+    if verify_graph_exists(G_file, stop_points, coordinates_list) is True:
 
-        G, nodes_coordinates, nodes_mass_increment = nodes_data(osm_file_name, stop_points, material_weights)
+        netconvert_geotiff(osm_file, MAPS_DIRECTORY + 'out.tif', NET)
+
+        G, nodes_coordinates, nodes_mass_increment = nodes_data(G_file, stop_points, material_weights, osm_file)
 
     else:
 
-        Map_Simulation.delete_osm_items(osm_file_name)
+        Map_Simulation.delete_osm_items(osm_file)
 
         if BIDIRECTIONAL is True:
-            Map_Simulation.edit_map(osm_file_name)
+            Map_Simulation.edit_map(osm_file)
 
         # Scenario graph (paths are edges and junctions are nodes)
         G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
 
-        G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights, osm_file_name)
+        G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights, osm_file, G_file)
 
     index_source = list(nodes_coordinates.values()).index(stop_points[0])
     node_source = list(nodes_coordinates.keys())[index_source]
@@ -406,18 +429,9 @@ def create_route(stop_points, material_weights, json_files):
 
     H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
 
-    start = time.time()
-
     dict_edges_net = Map_Simulation.edges_net(name_file_net)
 
-    end = time.time()
-    print("time 2", end - start)
-    start = time.time()
-
     Map_Simulation.allow_vehicle(name_file_net)
-
-    end = time.time()
-    print("time 3", end - start)
 
     cost_total, paths = Carrinheiro.nearest_neighbor_path(G, H, node_source, node_target)
 
@@ -428,7 +442,7 @@ def create_route(stop_points, material_weights, json_files):
     [result_work.update([(str(i), [stop_points[i]])]) for i in range(len(stop_points))]
     result_work.update([('work_total', cost_total)])
     result_work.update([('path', paths)])
-    write_json(result_work, file_name_json + '_coords' + '_' + IMPEDANCE)
+    write_json(result_work, file_name_json + '_coords' + '_' + IMPEDANCE + '_speed_' + str(SPEED_FACTOR))
     print("cost total", cost_total)
 
     print(paths)
@@ -450,10 +464,12 @@ def create_route(stop_points, material_weights, json_files):
 
     [edges_weight.update([(edges_stop[i], nodes_mass_increment.get(paths[i][0]))]) for i in range(len(edges_stop))]
 
-    start_simulation('sumo', sumo_config, file_name_json + '_' + IMPEDANCE + '.xml', sumo_route, G, dict_edges_net, file_name_json, edges_weight)
+    out = file_name_json + '_' + IMPEDANCE + '_speed_'+ str(SPEED_FACTOR) + '.xml'
+
+    start_simulation('sumo', sumo_config, out, sumo_route, G, dict_edges_net, file_name_json, edges_weight)
 
     # fig, ax = ox.plot_graph_route(G, list1, route_linewidth=6, node_size=0, bgcolor='w')
-    fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=6, node_size=0, bgcolor='w')
+    #fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=6, node_size=0, bgcolor='w')
     
     return paths, json_files
 
