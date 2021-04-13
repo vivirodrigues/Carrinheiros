@@ -11,8 +11,7 @@ from haversine import Unit
 from route import Scenario
 import xml.dom.minidom
 from collections import Counter
-from simulation import Main
-import time
+from simulation import Main, Map_Simulation
 
 
 def set_node_elevation(G, name_file_geotiff):
@@ -53,6 +52,23 @@ def set_node_elevation(G, name_file_geotiff):
     # based on x,y coordinate
     for i in range(0, len(x)):
         elevation.append(GeoTiff.coordinate_pixel(name_file_geotiff, longitudes[i], latitudes[i]))
+
+    # create a pandas series with the id of the node and corresponding elevation values
+    pd_elevation = pd.Series(elevation, index=ids)
+
+    # add the elevation value in the node attributes
+    nx.set_node_attributes(G, pd_elevation.to_dict(), name="elevation")
+
+    return G
+
+
+def set_node_elevation_simulation(G, file_name_net):
+
+    nodes_dict = Map_Simulation.nodes_z_net(file_name_net)
+    ids = list(G.nodes)
+    elevation = []
+    for i in ids:
+        elevation.append(nodes_dict.get(str(i)))
 
     # create a pandas series with the id of the node and corresponding elevation values
     pd_elevation = pd.Series(elevation, index=ids)
@@ -130,8 +146,9 @@ def hypotenuse(G):
                     in each edge.
     """
 
-    edges_G = [(u, v, k, data) for u, v, k, data in G.edges(keys=True, data=True) if
-                   data['length'] is None]
+    #edges_G = [(u, v, k, data) for u, v, k, data in G.edges(keys=True, data=True) if
+    #               data['length'] is None]
+    edges_G = [(u, v, k, data) for u, v, k, data in G.edges(keys=True, data=True)]
     if len(edges_G) > 0:
         coord_x = nx.get_node_attributes(G, "x")
         coord_y = nx.get_node_attributes(G, "y")
@@ -145,11 +162,13 @@ def hypotenuse(G):
             coord_y_2 = coord_y.get(v)
             coord_z_2 = coord_z.get(v)
             coord_2 = (coord_x_2, coord_y_2)
-            b = hs.haversine(coord_1, coord_2, unit=Unit.METERS)
+            # b = hs.haversine(coord_1, coord_2, unit=Unit.METERS)
+            d = coord_x_2 - coord_x_1
+            b = coord_y_2 - coord_y_1
             c = coord_z_2 - coord_z_1
-            a = ((b ** 2) + (c ** 2)) ** (1 / 2)
+            a = ((d ** 2) + (b ** 2) + (c ** 2)) ** (1 / 2)
             ########################
-            data['length'] = str(a)
+            data['hypotenuse'] = float(a)
     return G
 
 
@@ -408,9 +427,8 @@ def force(vehicle_mass, surface_floor, angle_inclination, speed = SPEED):
                                 angle (slope) inclination of the way,
                                 according to elevation, in radians
 
-    :param hypotenuse_length:   float
-                                The displacement value calculated
-                                according to angle of the inclination
+    :param speed:               float
+                                m/s
 
     :return:                    float
                                 The resultant work in Joules
@@ -448,6 +466,28 @@ def force(vehicle_mass, surface_floor, angle_inclination, speed = SPEED):
 
 
 def work(vehicle_mass, surface_floor, angle_inclination, hypotenuse_length):
+    """
+        This function calculates the work according to the resistance forces,
+        It includes aerodynamic force, rolling resistance, and gravity (px).
+
+        :param vehicle_mass:        float
+                                    Instant vehicle mass in Kg
+
+        :param surface_floor:       String
+                                    Type of the floor surface in the way.
+                                    Ex: asphalt
+
+        :param angle_inclination:   float
+                                    angle (slope) inclination of the way,
+                                    according to elevation, in radians
+
+        :param hypotenuse_length:   float
+                                    The displacement value calculated
+                                    according to angle of the inclination
+
+        :return:                    float
+                                    The resultant work in Joules
+        """
 
     hypotenuse_length = float(hypotenuse_length)
 
@@ -469,7 +509,7 @@ def impedance(length, grade):
     return length * penalty
 
 
-def update_weight(G, vehicle_mass, max_grade = None):
+def update_weight(G, vehicle_mass, max_grade = None, speed_factor = SPEED_FACTOR):
     """
     Update all edge weights of the graph G,
     according to current vehicle mass.
@@ -488,17 +528,21 @@ def update_weight(G, vehicle_mass, max_grade = None):
 
         weight_value = work(vehicle_mass, data['surface'], data['grade'], data['length']) # math.degrees()
         impedance_value = impedance(data['length'], data['grade_abs'])
+        # length_value = data['length']
+        length_value = float(data['length'])
 
-        if GRADE_FACTOR:
-            weight_value = max_grade_factor(weight_value, max_grade, data['grade'])
+        # if GRADE_FACTOR is True:
+        #    weight_value = max_grade_factor(weight_value, max_grade, data['grade'])
 
-        if SPEED_FACTOR:
+        if speed_factor is True:
             # avoid dangerous streets (high speeds)
+            length_value = max_speed_factor(length_value, data['maxspeed'])
             weight_value = max_speed_factor(weight_value, data['maxspeed'])
             impedance_value = max_speed_factor(impedance_value, data['maxspeed'])
 
         data['weight'] = weight_value
         data['impedance'] = impedance_value
+        data['distance'] = length_value
 
     return G
 
@@ -581,7 +625,7 @@ def configure_graph_simulation(G, geotiff_name, stop_points, ad_weights, file_na
 
     G = surface(G, file_name_osm)
 
-    G = hypotenuse(G)
+    # G = hypotenuse(G)
 
     G = maxspeed(G)
 

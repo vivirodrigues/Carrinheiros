@@ -278,7 +278,7 @@ def start_simulation(sumo, scenario, output, route, G, dict_edges_net, file_name
 
     try:
         traci.init(remote_port)
-        consumption = run(route, G, dict_edges_net, file_name_json, edges_weight)
+        length_total = run(route, G, dict_edges_net, file_name_json, edges_weight)
     except Exception as e:
         print(e)
         raise
@@ -286,7 +286,7 @@ def start_simulation(sumo, scenario, output, route, G, dict_edges_net, file_name
         terminate_sumo(sumo)
         unused_port_lock.__exit__()
 
-    return consumption
+    return length_total
 
 
 def write_json(content, fileName):
@@ -312,7 +312,7 @@ def get_work(G, nodes):
     weight_total = 0
     for i in range(len(nodes)-1):
         data_edge = G.get_edge_data(nodes[i], nodes[i+1])
-        weight_total += data_edge.get(0).get('weight')
+        weight_total += data_edge.get(0).get('length')
     print("TOTAL", weight_total)
 
 
@@ -325,12 +325,12 @@ def calculate_work_total(G, paths, nodes_mass_increment):
 
         # updates the weight of all edges of the scenario according
         # to the current weight of the vehicle
-        G = Graph.update_weight(G, vehicle_mass)
+        G = Graph.update_weight(G, vehicle_mass, speed_factor=False)
 
         sum_path_costs += Graph_Collect.sum_costs(G, i, 'weight')
         vehicle_mass += nodes_mass_increment.get(i[-1])
 
-        G = Graph.update_weight(G, VEHICLE_MASS)
+        G = Graph.update_weight(G, VEHICLE_MASS, speed_factor=False)
 
     return sum_path_costs
 
@@ -373,6 +373,10 @@ def nodes_data(file_name, stop_points, material_weights, file_osm):
          for n, d in G.nodes(data=True) if d['y'] in lats and d['x'] in lons]
 
     Scenario.simulation_edit_graph(G, file_osm)
+    G = Graph.set_node_elevation_simulation(G, 'map.net.xml')
+    # G = Graph.hypotenuse(G)
+    G = Graph.update_weight(G, VEHICLE_MASS)
+    Graph.save_graph_file(G, file_name)
 
     return G, nodes_coordinates, nodes_mass_increment
 
@@ -434,6 +438,7 @@ def create_route(stop_points, material_weights, json_files):
     Map_Simulation.allow_vehicle(name_file_net)
 
     cost_total, paths = Carrinheiro.nearest_neighbor_path(G, H, node_source, node_target)
+    #cost_total, paths = Carrinheiro.genetic_algorithm(G, H, node_source, node_target, nodes_coordinates)
 
     if IMPEDANCE != 'weight':
         cost_total = calculate_work_total(G, paths, nodes_mass_increment)
@@ -442,15 +447,15 @@ def create_route(stop_points, material_weights, json_files):
     [result_work.update([(str(i), [stop_points[i]])]) for i in range(len(stop_points))]
     result_work.update([('work_total', cost_total)])
     result_work.update([('path', paths)])
-    write_json(result_work, file_name_json + '_coords' + '_' + IMPEDANCE + '_speed_' + str(SPEED_FACTOR))
-    print("cost total", cost_total)
+    # write_json(result_work, file_name_json + '_coords' + '_' + IMPEDANCE + '_speed_' + str(SPEED_FACTOR))
+    # print("cost total", cost_total)
 
-    print(paths)
+    # print(paths)
 
     list1 = []
     for i in paths:
         list1 += i[1:]
-    print(list1)
+    # print(list1)
 
     sumo_route = []
     edges_stop = []
@@ -466,7 +471,10 @@ def create_route(stop_points, material_weights, json_files):
 
     out = file_name_json + '_' + IMPEDANCE + '_speed_'+ str(SPEED_FACTOR) + '.xml'
 
-    start_simulation('sumo', sumo_config, out, sumo_route, G, dict_edges_net, file_name_json, edges_weight)
+    total_length = start_simulation('sumo', sumo_config, out, sumo_route, G, dict_edges_net, file_name_json, edges_weight)
+
+    result_work.update([('total_length', total_length)])
+    write_json(result_work, file_name_json + '_coords' + '_' + IMPEDANCE + '_speed_' + str(SPEED_FACTOR))
 
     # fig, ax = ox.plot_graph_route(G, list1, route_linewidth=6, node_size=0, bgcolor='w')
     #fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=6, node_size=0, bgcolor='w')

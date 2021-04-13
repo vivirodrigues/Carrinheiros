@@ -1,22 +1,22 @@
-***Starting server on port 60609 ***
-Loading net-file from 'map.net.xml' ... done (2082ms).
+***Starting server on port 52375 ***
+Loading net-file from 'map.net.xml' ... done (2068ms).
 Loading done.
 Simulation version 1.8.0 started with time: 0.00
-Simulation ended at time: 14773.00
+Simulation ended at time: 26290.00
 Reason: TraCI requested termination.
 Performance: 
- Duration: 17.75s
- Real time factor: 832.516
- UPS: 832.459848
+ Duration: 35.59s
+ Real time factor: 738.794
+ UPS: 738.766334
 Vehicles: 
  Inserted: 1
  Running: 0
  Waiting: 0
 Statistics (avg):
- RouteLength: 10898.40
+ RouteLength: 19431.38
  Speed: 0.74
- Duration: 14772.00
- WaitingTime: 325.00
- TimeLoss: 3873.66
+ Duration: 26289.00
+ WaitingTime: 514.00
+ TimeLoss: 6856.91
  DepartDelay: 0.00
 

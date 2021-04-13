@@ -77,6 +77,7 @@ def sum_costs(G, path, weight = IMPEDANCE):
         e = G.adj[path[i]].get(path[i + 1])
         weight_edge = weight(path[i], path[i + 1], e)
         sum_costs += weight_edge
+
     return sum_costs
 
 

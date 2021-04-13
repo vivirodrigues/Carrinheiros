@@ -21,6 +21,11 @@ def get_nodes(file_name):
     return list(nodes)
 
 
+def get_all_nodes(file):
+    nodes = file.getElementsByTagName('junction')
+    return list(nodes)
+
+
 def get_edges(file):
     edge = file.getElementsByTagName('edge')
     return list(edge)
@@ -89,14 +94,20 @@ def edges_net(name_net_xml):
 
     file = parse_file_minidom(name_net_xml)
     edges = get_edges(file)
-    #  {'id_node_from', 'id_node_to'): 'id_edge'}
     edges_dict = {}
-    #for i in edges:
-    #    if i.attributes['id'].value[0] != ':':
-    #        edges_dict.update([((int(i.attributes['from'].value), int(i.attributes['to'].value)), str(i.attributes['id'].value))])
     [edges_dict.update([((int(i.attributes['from'].value), int(i.attributes['to'].value)), str(i.attributes['id'].value))]) for i in edges if i.attributes['id'].value[0] != ':']
 
     return edges_dict
+
+
+def nodes_z_net(name_net_xml):
+
+    file = parse_file_minidom(name_net_xml)
+    nodes = get_all_nodes(file)
+    nodes_dict = {}
+    [nodes_dict.update([(i.attributes['id'].value, float(i.attributes['z'].value))]) for i in nodes]#if i.attributes['id'].value[0] != ':']
+
+    return nodes_dict
 
 
 def edges_type(name_net_xml):
