@@ -49,41 +49,62 @@ def graph_scenario(stop_points, geotiff_name, ad_weights, file_name_osm):
     return G, nodes_coordinates, nodes_mass_increment
 
 
-def nearest_neighbor_path(G, H, node_source, node_target):
+#def nearest_neighbor_path(G, H, node_source, node_target, impedance=IMPEDANCE):
+def nearest_neighbor_path(G, H, node_source, node_target, impedance):
 
-    start = time.time()
-    route = Heuristics.nearest_neighbor(G, H, node_source, node_target, VEHICLE_MASS)
-    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS)
-    end = time.time()
-    print("Total cost route nearest", route, cost_total)
-    print("time nearest (s)", end - start)
+    #start = time.time()
+    route = Heuristics.nearest_neighbor(G, H, node_source, node_target, VEHICLE_MASS, impedance)
+    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS, impedance)
+    #end = time.time()
+    #print("Total cost route nearest", route, cost_total)
+    #print("time nearest (s)", end - start)
 
     return cost_total, paths
 
 
-def closest_insertion_path(G, H, node_source, node_target):
+#def closest_insertion_path(G, H, node_source, node_target, impedance = IMPEDANCE):
+def closest_insertion_path(G, H, node_source, node_target, impedance):
 
-    start = time.time()
+    #start = time.time()
 
     # order the visit of the stop points
-    route = Heuristics.closest_insertion(G, H, node_source, node_target)
+    route = Heuristics.closest_insertion(G, H, node_source, node_target, impedance)
 
     # create the path to visit all stop points
-    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS)
+    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS, impedance)
 
-    end = time.time()
-    print("Total cost route closest insertion", route, cost_total)
-    print("time closest insertion (s)", end - start)
+    #end = time.time()
+    #print("Total cost route closest insertion", route, cost_total)
+    #print("time closest insertion (s)", end - start)
 
     return cost_total, paths
 
 
-def genetic_algorithm(G, H, node_source, node_target, nodes_coordinates):
+def further_insertion_path(G, H, node_source, node_target, impedance):
+
+    #start = time.time()
+
+    # order the visit of the stop points
+    route = Heuristics.further_insertion(G, H, node_source, node_target, impedance)
+
+    # create the path to visit all stop points
+    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS, impedance)
+
+    #end = time.time()
+    #print("Total cost route closest insertion", route, cost_total)
+    #print("time closest insertion (s)", end - start)
+
+    return cost_total, paths
+
+
+#def genetic_algorithm(G, H, node_source, node_target, nodes_coordinates, impedance=IMPEDANCE):
+def genetic_algorithm(G, H, node_source, node_target, nodes_coordinates, impedance):
+
     nodes_h = list(nodes_coordinates.keys())
     start = time.time()
-    route = GA.GA(G, H, node_source, node_target, nodes_h)
+    route = GA.GA(G, H, node_source, node_target, nodes_h, impedance)
     end = time.time()
-    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS)
+    cost_total, paths = Graph_Collect.sum_costs_route(G, H, route, VEHICLE_MASS, impedance)
     print("Total cost route GA", route, cost_total)
     print("Time GA", end - start)
 
