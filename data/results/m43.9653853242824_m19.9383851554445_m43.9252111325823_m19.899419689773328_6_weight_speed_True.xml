@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Wed Apr 14 19:49:25 2021 by Eclipse SUMO sumo Version 1.8.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="map.net.xml"/>
+        <route-files value="map.rou.xml"/>
+    </input>
+
+    <output>
+        <tripinfo-output value="../data/results/m43.9653853242824_m19.9383851554445_m43.9252111325823_m19.899419689773328_6_weight_speed_True.xml"/>
+    </output>
+
+    <time>
+        <begin value="0"/>
+        <end value="10000"/>
+    </time>
+
+    <report>
+        <verbose value="true"/>
+        <log value="logfile.txt"/>
+        <duration-log.statistics value="true"/>
+    </report>
+
+    <emissions>
+        <device.emissions.probability value="1"/>
+    </emissions>
+
+    <traci_server>
+        <remote-port value="39059"/>
+    </traci_server>
+
+</configuration>
+-->
+
+<tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+    <tripinfo id="carrinheiro" depart="0.00" departLane="50000000001_0" departPos="5.10" departSpeed="0.00" departDelay="0.00" arrival="20933.00" arrivalLane="70000000010_0" arrivalPos="0.20" arrivalSpeed="0.51" duration="20933.00" routeLength="15574.10" waitingTime="237.00" waitingCount="17" stopTime="0.00" timeLoss="5358.89" rerouteNo="0" devices="tripinfo_carrinheiro emissions_carrinheiro" vType="DEFAULT_VEHTYPE@carrinheiro" speedFactor="1.06" vaporized="">
+        <emissions CO_abs="0" CO2_abs="0" HC_abs="0" PMx_abs="0" NOx_abs="0" fuel_abs="0" electricity_abs="0"/>
+    </tripinfo>
+</tripinfos>

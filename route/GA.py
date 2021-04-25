@@ -30,17 +30,18 @@ def create_individual(possibilities, source, target):
     individual.append(target)
     return individual
 
-def fitness_individual(G, H, individual):
-    total_work_individual, _ = Graph_Collect.sum_costs_route(G, H, individual, VEHICLE_MASS)
+
+def fitness_individual(G, H, individual, impedance):
+    total_work_individual, _ = Graph_Collect.sum_costs_route(G, H, individual, VEHICLE_MASS, impedance)
     return total_work_individual
 
 
-def fitness_population(G, H, population):
+def fitness_population(G, H, population, impedance):
     len_pop = len(population)
     fitness_population = []
 
     for i in range(len_pop):
-        aptitude = fitness_individual(G, H, population[i])
+        aptitude = fitness_individual(G, H, population[i], impedance)
         fitness_population.append(aptitude)
 
     return fitness_population
@@ -295,7 +296,8 @@ def next_generation(population, fitness_pop, source, target, nodes):
     return generation
 
 
-def GA(G, H, source, target, nodes):
+def GA(G, H, source, target, nodes, impedance):
+#def GA(G, H, source, target, nodes, impedance=IMPEDANCE):
     population_initial = initial_population(G, H, source, target)
     population = population_initial.copy()
     fitness = []
@@ -304,7 +306,7 @@ def GA(G, H, source, target, nodes):
     criterion = True
     bests = []
     while criterion is True:
-        fitness = fitness_population(G, H, population)
+        fitness = fitness_population(G, H, population, impedance)
         fitness = exponential_transformation(fitness)
         population = next_generation(population, fitness, source, target, nodes)
         bests.append(population[-1])

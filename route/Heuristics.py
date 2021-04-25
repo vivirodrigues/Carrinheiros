@@ -6,6 +6,7 @@ from Constants import *
 from route import Graph_Collect
 import random
 import more_itertools
+import matplotlib.pyplot as plt
 
 
 def bellman_ford(G, initial_node, target_node, weight):
@@ -111,7 +112,7 @@ def verifying_nodes(path, nodes):
     return False
 
 
-def nearest_neighbor(G, H, source, target, vehicle_mass):
+def nearest_neighbor(G, H, source, target, vehicle_mass, impedance):
     """
 
     :param G:           NetworkX graph.
@@ -157,7 +158,7 @@ def nearest_neighbor(G, H, source, target, vehicle_mass):
             for u in possibilities:
                 # checks the edge weight according to the vehicle's mass +
                 # mass increase at the current vertex
-                edge_cost, _ = Graph_Collect.cost_path(G, node, u, current_vehicle_mass)
+                edge_cost, _ = Graph_Collect.cost_path(G, node, u, current_vehicle_mass, impedance)
                 dist.update([(u, edge_cost)])
 
             # sorting the dict according to edge weights
@@ -229,7 +230,7 @@ def updates_vehicle_mass(path, mass):
     return vehicle_mass
 
 
-def closest_insertion(G, H, source, target):
+def closest_insertion(G, H, source, target, impedance):
 
     current_vehicle_mass = VEHICLE_MASS
     path = [source]
@@ -242,7 +243,7 @@ def closest_insertion(G, H, source, target):
 
     # verify the cost of the source to the nodes
     for u in H.adj[source]:
-        edge_cost, _ = Graph_Collect.cost_path(G, source, u, current_vehicle_mass)
+        edge_cost, _ = Graph_Collect.cost_path(G, source, u, current_vehicle_mass, impedance)
         costs_to_source.update([(u, edge_cost)])
 
     # sorting the dict according to edge weights
@@ -266,7 +267,7 @@ def closest_insertion(G, H, source, target):
         k_node = float('inf')
         for a in path:
             for b in possibilities:
-                cost, _ = Graph_Collect.cost_path(G, a, b, current_vehicle_mass)
+                cost, _ = Graph_Collect.cost_path(G, a, b, current_vehicle_mass, impedance)
                 if cost < min_cost:
                     min_cost = cost
                     k_node = b
@@ -277,9 +278,9 @@ def closest_insertion(G, H, source, target):
         position = float('inf')
         for i in range(len(path)-1):
             current_vehicle_mass = updates_vehicle_mass(path[:i], mass)
-            cost_IK, _ = Graph_Collect.cost_path(G, path[i], k_node, current_vehicle_mass)
-            cost_KJ, _ = Graph_Collect.cost_path(G, k_node, path[i+1], current_vehicle_mass)
-            cost_IJ, _ = Graph_Collect.cost_path(G, path[i], path[i+1], current_vehicle_mass)
+            cost_IK, _ = Graph_Collect.cost_path(G, path[i], k_node, current_vehicle_mass, impedance)
+            cost_KJ, _ = Graph_Collect.cost_path(G, k_node, path[i+1], current_vehicle_mass, impedance)
+            cost_IJ, _ = Graph_Collect.cost_path(G, path[i], path[i+1], current_vehicle_mass, impedance)
             total_cost = cost_IK + cost_KJ - cost_IJ
             # print('costs', cost_IK, cost_KJ, cost_IJ, total_cost)
             if total_cost < min_cost:
@@ -297,7 +298,7 @@ def closest_insertion(G, H, source, target):
     return path
 
 
-def further_insertion(G, H, source, target):
+def further_insertion(G, H, source, target, impedance):
 
     current_vehicle_mass = VEHICLE_MASS
     path = [source]
@@ -310,7 +311,7 @@ def further_insertion(G, H, source, target):
 
     # verify the cost of the source to the nodes
     for u in H.adj[source]:
-        edge_cost, _ = Graph_Collect.cost_path(G, source, u, current_vehicle_mass)
+        edge_cost, _ = Graph_Collect.cost_path(G, source, u, current_vehicle_mass, impedance)
         costs_to_source.update([(u, edge_cost)])
 
     # sorting the dict according to edge weights
@@ -334,7 +335,7 @@ def further_insertion(G, H, source, target):
         k_node = float('inf')
         for a in path:
             for b in possibilities:
-                cost, _ = Graph_Collect.cost_path(G, a, b, current_vehicle_mass)
+                cost, _ = Graph_Collect.cost_path(G, a, b, current_vehicle_mass, impedance)
                 if cost > max_cost:
                     max_cost = cost
                     k_node = b
@@ -345,9 +346,9 @@ def further_insertion(G, H, source, target):
         position = 0
         for i in range(len(path)-1):
             current_vehicle_mass = updates_vehicle_mass(path[:i], mass)
-            cost_IK, _ = Graph_Collect.cost_path(G, path[i], k_node, current_vehicle_mass)
-            cost_KJ, _ = Graph_Collect.cost_path(G, k_node, path[i+1], current_vehicle_mass)
-            cost_IJ, _ = Graph_Collect.cost_path(G, path[i], path[i+1], current_vehicle_mass)
+            cost_IK, _ = Graph_Collect.cost_path(G, path[i], k_node, current_vehicle_mass, impedance)
+            cost_KJ, _ = Graph_Collect.cost_path(G, k_node, path[i+1], current_vehicle_mass, impedance)
+            cost_IJ, _ = Graph_Collect.cost_path(G, path[i], path[i+1], current_vehicle_mass, impedance)
             total_cost = cost_IK + cost_KJ - cost_IJ
             # print('costs', cost_IK, cost_KJ, cost_IJ, total_cost)
             if total_cost > max_cost:

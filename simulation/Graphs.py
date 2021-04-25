@@ -25,18 +25,23 @@ def plot_BH():
 
     files_map = '../data/maps/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925.graphml'
     G = ox.load_graphml(files_map)
+    #Graph.plot_graph(G)
 
     files_result = [
-        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_weight',
-        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_impedance',
-        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_length',
+        #'../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_weight_speed_True',
+        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_0_coords_weight_speed_False',
+        #'../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_impedance_speed_True',
+        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_0_coords_impedance_speed_False',
+        #'../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_length_speed_True',
+        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_0_coords_distance_speed_False'
     ]
 
     for i in range(len(files_result)):
         dados = dict(open_file(files_result[i]))
         paths = dados.get('path')
+        print(paths)
 
-        fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=7, node_size=0, bgcolor='w',
+        fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=7, node_size=0, bgcolor='w',# node_color='#A0CBE2',
                                        bbox=(-19.910, -19.940, -43.932, -43.958), figsize=(7.7, 10))
 
         #ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1),
@@ -49,9 +54,11 @@ def plot_Belem():
     G = ox.load_graphml(files_map)
 
     files_result = [
-        '../data/results/m48.488877797764935_m1.484547838679201_m48.45585981539186_m1.4448492646059234_coords_weight',
-        '../data/results/m48.488877797764935_m1.484547838679201_m48.45585981539186_m1.4448492646059234_coords_impedance',
-        '../data/results/m48.488877797764935_m1.484547838679201_m48.45585981539186_m1.4448492646059234_coords_length'
+        '../data/results/m48.488877797764935_m1.484547838679201_m48.45585981539186_m1.4448492646059234_0_coords_weight_speed_False',
+        '../data/results/m48.488877797764935_m1.484547838679201_m48.45585981539186_m1.4448492646059234_0_coords_impedance_speed_False',
+        '../data/results/m48.488877797764935_m1.484547838679201_m48.45585981539186_m1.4448492646059234_0_coords_distance_speed_False'
+        #'../data/results/m48.488877797764935_m1.484547838679201_m48.45585981539186_m1.4448492646059234_coords_impedance_speed_True',
+        #'../data/results/m48.488877797764935_m1.484547838679201_m48.45585981539186_m1.4448492646059234_coords_length_speed_True'
     ]
 
     for i in range(len(files_result)):
@@ -67,8 +74,8 @@ def plot_BH_2():
     G = ox.load_graphml(files_map)
 
     files_result = [
-        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_distance_speed_False',
-        #'../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_distance_speed_True'
+        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_weight_speed_False',
+        '../data/results/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925_coords_weight_speed_True'
     ]
 
     rotas = []
@@ -79,8 +86,8 @@ def plot_BH_2():
         [paths.append(i[:-1]) for i in lista] #extend
         rotas.extend(paths)
 
-    # 'r','r','r','r','r','r','r','r', 'r'
-    fig, ax = ox.plot_graph_routes(G, rotas, ['g','g','g','g','g','g','g','g','g'], route_linewidth=7, node_size=0, bgcolor='w',
+    #
+    fig, ax = ox.plot_graph_routes(G, rotas, ['g','g','g','g','g','g','g','g','g', 'r','r','r','r','r','r','r','r', 'r'], route_linewidth=7, node_size=0, bgcolor='w',
                                    bbox=(-19.910, -19.940, -43.932, -43.958), figsize=(7.7, 10), route_alpha=.5, orig_dest_size=200)
 
 
@@ -176,13 +183,9 @@ def plot_elevation_belem():
 if __name__ == '__main__':
     #plot_elevation()
     #plot_elevation_belem()
-    #plot_work()
-    #plot_work_belem()
     #plot_all_work_2()
-    #plot_BH()
-    plot_BH_2()
+    plot_BH()
     #plot_edge_grades()
-    #plot_time()
-    #plot_all_time()
-    # plot_Belem()
+    #plot_Belem()
+    #plot_BH_2()
 

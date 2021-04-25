@@ -505,7 +505,10 @@ def max_grade_factor(weight_value, max_grade, grade, percentage=0.5):
 
 
 def impedance(length, grade):
-    penalty = grade ** 2
+    if grade > 0:
+        penalty = grade ** 2
+    else:
+        penalty = grade * (-1)
     return length * penalty
 
 
@@ -527,7 +530,7 @@ def update_weight(G, vehicle_mass, max_grade = None, speed_factor = SPEED_FACTOR
     for u, v, k, data in G.edges(keys=True, data=True):
 
         weight_value = work(vehicle_mass, data['surface'], data['grade'], data['length']) # math.degrees()
-        impedance_value = impedance(data['length'], data['grade_abs'])
+        impedance_value = impedance(data['length'], data['grade'])
         # length_value = data['length']
         length_value = float(data['length'])
 
@@ -547,7 +550,7 @@ def update_weight(G, vehicle_mass, max_grade = None, speed_factor = SPEED_FACTOR
     return G
 
 
-def get_edge_weight(G, u, v, id_edge):
+def get_edge_weight(G, u, v, id_edge, impedance):
     """
     It gets the edge weight of the graph G.
 
@@ -564,7 +567,7 @@ def get_edge_weight(G, u, v, id_edge):
     :return:            float
                         The weight of the edge
     """
-    weights = nx.get_edge_attributes(G, IMPEDANCE)
+    weights = nx.get_edge_attributes(G, impedance)
     return weights.get((u, v, id_edge))
 
 
