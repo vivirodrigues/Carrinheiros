@@ -96,21 +96,12 @@ def _add_margin(coordinates_list, margin_value_coordinate=0.01):
                                     [min_lon, min_lat, max_lon, max_lat]
     """
 
-    base = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[3], coordinates_list[0]))
-    altura = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[1], coordinates_list[2]))
-    area_original = base * altura
-
     # margin in the scenario rectangle area
     # add a margin in the scenario rectangle area
     coordinates_list[0] -= margin_value_coordinate
     coordinates_list[1] -= margin_value_coordinate
     coordinates_list[2] += margin_value_coordinate
     coordinates_list[3] += margin_value_coordinate
-
-    base = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[3], coordinates_list[0]))
-    altura = hs.haversine((coordinates_list[1], coordinates_list[0]), (coordinates_list[1], coordinates_list[2]))
-    area_nova = base * altura
-    print("Área adicionada", area_nova - area_original)
 
     return coordinates_list
 

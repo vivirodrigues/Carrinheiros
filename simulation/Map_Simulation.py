@@ -187,17 +187,9 @@ def edit_map(osm_file):
 
     # it transforms some edges in two ways streets
     x = root.getElementsByTagName("tag")
-    new_x = []
-    """
-    for i in range(len(x)):
-        if x[i].getAttribute("v") in TWO_WAY:
-            new_x.append(x[i].parentNode.getAttribute("id"))
-            print("oooo", x[i].parentNode.getAttribute("id"))
-    """
 
     for i in range(len(x)):
         if x[i].getAttribute("k") == 'oneway' or x[i].getAttribute("v") == 'roundabout' or x[i].getAttribute("k") == 'restriction' or x[i].getAttribute("v") == 'restriction':
-        #if x[i].getAttribute("v") == 'roundabout' or x[i].getAttribute("k") == 'restriction' or x[i].getAttribute("v") == 'restriction':
             x[i].parentNode.removeChild(x[i])
 
     # it transforms some edges types in "residential"
@@ -228,42 +220,3 @@ def allow_vehicle(net_file):
     with open(net_file, "w") as fs:
         fs.write(root.toxml())
         fs.close()
-
-
-if __name__ == '__main__':
-
-    # print(nodes[0].attributes['lon'].value)
-
-    #file_2 = parse_file_tree('../data/maps/map.osm')
-    # osm_tag = file_2.getroot()
-
-    a = '../data/maps/m43.96267779776494_m19.944747838679202_m43.929659815391865_m19.905049264605925.osm'
-    delete_osm_items(a)
-
-    #dictionary = {}
-    #for node in file_2.iter('node'):
-    #    dictionary.update([(float(node.get('id')), (float(node.get('lat')), float(node.get('lon'))))])
-    #print(dictionary)
-
-
-
-
-    #osm_tag = create_node(osm_tag, "2222", "2", "2")
-    #osm_tag = create_way(osm_tag, "aaaa", "2222", "0000000000")
-
-    #file_2.write("output.osm", xml_declaration=True)
-
-    print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-
-
-
-    #y = x.childNodes #.getAttribute("id")
-
-    #x.removeChild(y)
-    #file_2.write('output.xml')
-
-    #for node in file_2.iter('node'):
-    #    print(node.attrib)
-
-# https://dev.to/filipemot/criacao-de-xml-com-python-3fmd
-# https://stackoverflow.com/questions/49924915/how-to-add-a-subchild-on-a-xml-file-using-xml-etree-elementtree/49925664

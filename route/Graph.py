@@ -2,16 +2,15 @@ import osmnx as ox
 import pandas as pd
 import networkx as nx
 import inspect
-from geography import GeoTiff, Coordinates
+from geography import GeoTiff
 from Constants import *
 import math
 from scipy import constants
-import haversine as hs
-from haversine import Unit
 from route import Scenario
 import xml.dom.minidom
 from collections import Counter
-from simulation import Main, Map_Simulation
+from simulation import Map_Simulation
+import Main
 
 
 def set_node_elevation(G, name_file_geotiff):
@@ -608,7 +607,6 @@ def configure_graph(G, geotiff_name, stop_points, ad_weights, file_name_osm):
     max_grade = max(list(nx.get_edge_attributes(G, "grade").values()))
     G = update_weight(G, VEHICLE_MASS, max_grade)
 
-    save_graph_file(G, GRAPH_NAME)
     #plot_graph(G)
 
     return G, nodes_and_coordinates, nodes_and_weights
