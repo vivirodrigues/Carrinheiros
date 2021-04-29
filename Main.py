@@ -333,80 +333,102 @@ def nodes_data(file_name, stop_points, material_weights, file_osm, geotiff):
 
 def create_route(stop_points, material_weights, json_files, n = None):
 
+    # the desired geotiff name to the mosaic
     mosaic_geotiff_name = 'out.tif'
     geotiff_name_out = MAPS_DIRECTORY + mosaic_geotiff_name
 
-    # download the osm file (scenario)
-    print(MAPS_DIRECTORY)
+    # creates the geographic rectangular area based on stop points coordinates
+    # downloads the Open Street Map (osm) file of the area
     osm_file = OpenSteetMap.file_osm(MAPS_DIRECTORY, stop_points)
 
-    # download the GeoTiff file (scenario)
+    # downloads the GeoTiff file(s) of the area from the Topodata site
+    # it returns the geotiff name of the Topodata database
     geotiff_name = GeoTiff.geotiff(MAPS_DIRECTORY, stop_points)
-
     geotiff_name = MAPS_DIRECTORY + geotiff_name + '.tif'
 
+    # gdal translate of the geotiff file
     geotiff_transformation(geotiff_name, geotiff_name_out)
 
+    # creates a rectangular area based on stop points coordinates
     max_lat, min_lat, max_lon, min_lon = Coordinates.create_osmnx(stop_points)
 
-    coordinates_list = Coordinates.coordinates_list_bbox(stop_points)
+    # G_file is the name of the graph file (.graphml extension)
     G_file = Saves.def_file_name(MAPS_DIRECTORY, stop_points, '.graphml')
+
+    # defines the json file name of the simulation results
     file_name_json = Saves.def_file_name(RESULTS_DIRECTORY, stop_points, '') + '_' + str(n)
     json_files.append(file_name_json)
 
+    # the coordinates of the area is used to verify if the graph exists
+    coordinates_list = Coordinates.coordinates_list_bbox(stop_points)
+
+    # if the graph exists, it is not necessary to do all configurations on the graph
     if verify_graph_exists(G_file, stop_points, coordinates_list) is True:
 
+        # creates the .net.xml file (SUMO simulator file)
         netconvert_geotiff(osm_file, geotiff_name_out, NET)
 
+        # configure the elevation and edge weights
+        # creates dictionaries with coordinates and mass increment data
         G, nodes_coordinates, nodes_mass_increment = nodes_data(G_file, stop_points, material_weights, osm_file, geotiff_name)
 
     else:
 
+        # delete collect points added before in the osm file
         Map_Simulation.delete_osm_items(osm_file)
 
+        # if there are ways that can be bidirectional to 'carrinheiro'
         if BIDIRECTIONAL is True:
             Map_Simulation.edit_map(osm_file)
 
+        # creates the osmnx graph based on the geographic area
         # Scenario graph (paths are edges and junctions are nodes)
         G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
 
+        # configure the graph
         G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights, osm_file, G_file)
 
+    # the starting point is the first collect point of the vector
     index_source = list(nodes_coordinates.values()).index(stop_points[0])
     node_source = list(nodes_coordinates.keys())[index_source]
-    print("node source", node_source)
 
+    # the arrival point is the last collect point of the vector
     index_target = list(nodes_coordinates.values()).index(stop_points[-1])
     node_target = list(nodes_coordinates.keys())[index_target]
-    print("target", node_target)
 
+    # creates the ordering graph
+    # it is a complete graph with the number of nodes equivalent to number of collect points
     H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
 
+    # dictionary with adjacent edges informations
     dict_edges_net = Map_Simulation.edges_net(NET)
 
+    # it is necessary configure the edges on simulator to allow the carrinheiro's type of vehicle
     Map_Simulation.allow_vehicle(NET)
 
     politics = ['weight', 'impedance', 'distance']
 
     for j in politics:
 
+        # orders the collect points and creates the route
         cost_total, paths = Carrinheiro.nearest_neighbor_path(G, H, node_source, node_target, j)
 
-        if j != 'weight':
-            cost_total = calculate_work_total(G, paths, nodes_mass_increment)
-
+        # simulation results dictionary
         result_work = {}
         [result_work.update([(str(i), [stop_points[i]])]) for i in range(len(stop_points))]
-        result_work.update([('work_total', float(cost_total))])
 
-        list1 = []
-        for i in paths:
-            list1 += i[1:]
+        #list1 = []
+        #for i in paths:
+        #    list1 += i[1:]
 
         sumo_route = []
         edges_stop = []
         edges_weight = {}
+
         for i in paths:
+
+            # transform the graph route in a SUMO route
+            # it is necessary because edge name is different on SUMO
             route_edges = Map_Simulation.nodes_to_edges(i, dict_edges_net)
             edges_stop.append(route_edges[0])
             sumo_route.extend(route_edges)
@@ -419,13 +441,21 @@ def create_route(stop_points, material_weights, json_files, n = None):
 
         result_work.update([('total_length', float(total_length))])
         write_json(result_work, file_name_json + '_coords_' + j + '_speed_' + str(SPEED_FACTOR))
-
+        
+        # plot the route
         fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=6, node_size=0, bgcolor='w')
 
     return json_files
 
 
 def get_seed(seed_id):
+    """
+    This function provides the random seed.
+
+    :param seed_id:     int
+                        the seed_id is the 'seeds' vector index
+    :return:
+    """
     seeds = [960703545, 1277478588, 1936856304,
              186872697, 1859168769, 1598189534,
              1822174485, 1871883252, 694388766,
@@ -452,25 +482,56 @@ def get_seed(seed_id):
 
 
 def main():
+    """
+    This function executes the experiments on the SUMO simulator.
+    First of all, it sets the characteristics of the scenario:
+    number of collect points, values of vehicle weight increment,
+    city of the scenario, number of repetitions of the simulations, etc.
+    Then, it creates pseudo-random collect points/stop points of the
+    scenario. Finally, the function calls the 'create_route' function.
+    """
 
+    # number of collect points
     n_points = 10
+
+    # maximum increment of vehicle weight at the collect point (material mass)
     max_mass_material = 50
 
+    # random seed of mass increment
     random.seed(get_seed(0))
+
+    # scenarios: 'Belo Horizonte' and 'Belem'
+    city = 'Belo Horizonte'
+
+    # mean of the gaussian function
+    if city == 'Belo Horizonte':
+        mean_lon = [-43.9438]
+        mean_lat = [-19.9202]
+    elif city == 'Belem':
+        mean_lon = [-48.47000]
+        mean_lat = [-1.46000]
+    else:
+        mean_lon = [-48.47000]
+        mean_lat = [-1.46000]
+
+    # standard deviation of the gaussian function
+    sigma = 0.005
+
+    # vector with vehicle weight increment in the collect points
     mass_increments = [random.randint(0, max_mass_material) for i in range(n_points-2)]
+
+    # add unit of measurement of vehicle weight increment in the collect points
     material_weights = [(mass_increments[i], 'Kg') for i in range(n_points-2)]
+
+    # the arrival point must not increment the vehicle weight
     material_weights.append((0, 'Kg'))
+
+    # the starting point must not increment the vehicle weight
     material_weights.insert(0, (0, 'Kg'))
 
-    sigma = 0.005  # standard deviation
-
-    # scenarios: Campinas, Belém, BH
-    mean_lon = [-43.9438]
-    mean_lat = [-19.9202]
-    # lon: -48.47000   -43.9438
-    # lat: -1.46000    -19.9202
-
+    # number of repetitions of the simulations
     n_seeds = 1
+
     json_files = []
     materials = {}
 
