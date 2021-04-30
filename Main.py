@@ -423,7 +423,6 @@ def create_route(stop_points, material_weights, json_files, n = None):
 
         sumo_route = []
         edges_stop = []
-        edges_weight = {}
 
         for i in paths:
 
@@ -433,15 +432,19 @@ def create_route(stop_points, material_weights, json_files, n = None):
             edges_stop.append(route_edges[0])
             sumo_route.extend(route_edges)
 
-        [edges_weight.update([(edges_stop[i], nodes_mass_increment.get(paths[i][0]))]) for i in range(len(edges_stop))]
+        # creates a dictionary with mass increment value of the edges
+        edges_mass_increments = {}
+        [edges_mass_increments.update([(edges_stop[i], nodes_mass_increment.get(paths[i][0]))]) for i in range(len(edges_stop))]
 
         out = file_name_json + '_' + j + '_speed_'+ str(SPEED_FACTOR) + '.xml'
 
-        total_length = start_simulation('sumo', SUMO_CONFIG, out, sumo_route, G, dict_edges_net, file_name_json, edges_weight, j)
-
+        # it simulates the 'carrinheiro' on the route and returns the total distance traveled
+        total_length = start_simulation('sumo', SUMO_CONFIG, out, sumo_route, G, dict_edges_net, file_name_json, edges_mass_increments, j)
         result_work.update([('total_length', float(total_length))])
+
+        # write the json with simulation results
         write_json(result_work, file_name_json + '_coords_' + j + '_speed_' + str(SPEED_FACTOR))
-        
+
         # plot the route
         fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=6, node_size=0, bgcolor='w')
 
@@ -550,3 +553,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# scenarios: Campinas, Belém, BH
+    #mean_lon = [-43.9438]
+    #mean_lat = [-19.9202]
+    # lon: -48.47000   -43.9438
+    # lat: -1.46000    -19.9202
+
+# if politics is different of weight, calculates
+        #if j != 'weight':
+         #   cost_total = calculate_work_total(G, paths, nodes_mass_increment)
+         # result_work.update([('work_total', float(cost_total))])
