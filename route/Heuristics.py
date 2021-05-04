@@ -1,12 +1,9 @@
 from route import Graph
 import networkx as nx
-import osmnx as ox
 from collections import deque
 from Constants import *
 from route import Graph_Collect
-import random
 import more_itertools
-import matplotlib.pyplot as plt
 
 
 def bellman_ford(G, initial_node, target_node, weight):
@@ -260,7 +257,7 @@ def closest_insertion(G, H, source, target, impedance):
     possibilities = set(nodes) - set(path)
 
     # all nodes must be visited
-    while len(possibilities) > 0:  #len(path) < len(nodes):
+    while len(possibilities) > 0:
 
         # get the closest node of any node inside the path
         min_cost = float('inf')
@@ -282,7 +279,6 @@ def closest_insertion(G, H, source, target, impedance):
             cost_KJ, _ = Graph_Collect.cost_path(G, k_node, path[i+1], current_vehicle_mass, impedance)
             cost_IJ, _ = Graph_Collect.cost_path(G, path[i], path[i+1], current_vehicle_mass, impedance)
             total_cost = cost_IK + cost_KJ - cost_IJ
-            # print('costs', cost_IK, cost_KJ, cost_IJ, total_cost)
             if total_cost < min_cost:
                 min_cost = total_cost
                 position = i+1
@@ -350,7 +346,6 @@ def further_insertion(G, H, source, target, impedance):
             cost_KJ, _ = Graph_Collect.cost_path(G, k_node, path[i+1], current_vehicle_mass, impedance)
             cost_IJ, _ = Graph_Collect.cost_path(G, path[i], path[i+1], current_vehicle_mass, impedance)
             total_cost = cost_IK + cost_KJ - cost_IJ
-            # print('costs', cost_IK, cost_KJ, cost_IJ, total_cost)
             if total_cost > max_cost:
                 a_1 = path[i]
                 a_2 = path[i+1]
@@ -397,44 +392,3 @@ def exact_method(G, H, source, target):
     index_minimum = costs.index(minimum)
 
     return minimum, all_permutations[index_minimum], paths
-
-
-def comparar_paths(G):
-    nodes = list(G.nodes)
-    source = random.choice(nodes)
-    target = random.choice(nodes)
-
-    rota_mine = shortest_path_faster(G, source, target, 'weight')
-    dist1, rota_di = bidirectional_dijkstra(G, source, target, 'weight')
-
-    dist1 = Graph_Collect.sum_costs(G, rota_di)
-    dist2 = Graph_Collect.sum_costs(G, rota_mine)
-    print(dist1)
-    print(dist2)
-
-    if rota_di == rota_mine:
-        print("Ok")
-    else:
-        print(rota_di)
-        print(rota_mine)
-        print("Errooooo")
-
-
-if __name__ == '__main__':
-    G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
-    G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY + '22S48_ZN.tif')
-    G = Graph.edge_grades(G)
-    name_osm = '../data/maps/47.107718000000006_22.843953_47.054891_22.796008.osm'
-    G = Graph.surface(G, '../' + MAPS_DIRECTORY, name_osm)
-    G = Graph.hypotenuse(G)
-    G = Graph.maxspeed(G)
-    G = Graph.update_weight(G, 10)
-
-
-    # dist1, route1 = bellman_ford(G, 505388658, 505388842, Graph.update_weight())
-
-    #dist2, route2 = bidirectional_dijkstra(G, nodes[1], nodes[5], Graph.impedance)
-    # fig, ax = ox.plot_graph_route(G, route1, node_size=0)
-    # fig, ax = ox.plot_graph_route(G, route2, node_size=0)
-    for i in range(1):
-       comparar_paths(G)

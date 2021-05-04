@@ -89,10 +89,10 @@ def _geotiff(directory, file_names):
             with open(directory + file_names[i], 'r') as f:
                 pass
                 # self.scenario_geotiff = f.read()
-                print(file_names[i], " file exists")
+                print("Topodata file: ", file_names[i])
         except IOError:
             # if it does not exist, it downloads the file
-            print(file_names[i])
+            print("The file ", file_names[i], " from Topodata does not exists")
             download_file = Download.download_geotiff(directory, file_names[i])
 
 

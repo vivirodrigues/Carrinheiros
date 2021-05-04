@@ -1,9 +1,7 @@
-import networkx as nx
 from route import Heuristics
 from route import Graph
 from Constants import *
 import networkx as nx
-import matplotlib.pyplot as plt
 
 
 def create_graph_route(nodes_coordinates, nodes_mass_increment):
@@ -35,29 +33,6 @@ def create_graph_route(nodes_coordinates, nodes_mass_increment):
     # creating a complete graph
     H = nx.complete_graph(len(nodes_coordinates.keys()))
 
-    """
-    # nx.draw(H, pos=nx.spring_layout(H))
-    colors = ['#c1c1c1' for i in range(len(H.edges()) - 1)]
-    colors.insert(len(H.edges()), 'r')
-    other_colors = ['#A0CBE2' for i in range(len(H.nodes()) - 2)]
-    other_colors.append('r')
-    other_colors.append('r')
-    ids = [i for i in range(len(H.edges()))]
-    mapping = {i: ids for i, ids in enumerate(ids)}
-    H = nx.relabel_nodes(H, mapping)
-
-    options = {
-        "node_color": other_colors, #'#A0CBE2',
-        "node_size": 800,
-        "edge_color": colors,
-        "width": 5,
-        "with_labels": True,
-        "font_weight": 'bold'
-    }
-    nx.draw(H, **options)
-    plt.show()
-    """
-
     # Modifying node names (id nodes of G = id nodes of H)
     node_names = list(nodes_mass_increment.keys())
     mapping = {i:node_names for i, node_names in enumerate(node_names)}
@@ -74,7 +49,6 @@ def create_graph_route(nodes_coordinates, nodes_mass_increment):
     return H
 
 
-#def sum_costs(G, path, impedance = IMPEDANCE):
 def sum_costs(G, path, impedance):
     """
     This function calculates the sum of the costs
@@ -94,7 +68,7 @@ def sum_costs(G, path, impedance):
                     The sum of all cost (weight)
                     edges of the path.
     """
-    weight = Graph._weight(G, impedance) #'weight')
+    weight = Graph._weight(G, impedance)
     sum_costs = 0
 
     for i in range(len(path)-1):
@@ -105,7 +79,6 @@ def sum_costs(G, path, impedance):
     return sum_costs
 
 
-#def cost_path(G, source, target, vehicle_mass, impedance=IMPEDANCE):
 def cost_path(G, source, target, vehicle_mass, impedance):
     """
     This function calculates the path between source and
@@ -123,14 +96,10 @@ def cost_path(G, source, target, vehicle_mass, impedance):
 
     # updates the weight of all edges of the scenario according
     # to the current weight of the vehicle
-    max_grade = max(list(nx.get_edge_attributes(G, "grade").values()))
-    G = Graph.update_weight(G, vehicle_mass, max_grade)
+    G = Graph.update_weight(G, vehicle_mass)
 
     # finds the shortest path to the destination in the scenario graph
-    #path = Heuristics.shortest_path_faster(G, source, target, 'weight')
-    distance, path = Heuristics.bellman_ford(G, source, target, weight=impedance) # 'weight')
-    # distance, path = Heuristics.bidirectional_dijkstra(G, source, target, weight=IMPEDANCE)
-    #path = nx.astar_path(G, source, target, weight=IMPEDANCE)
+    path = Heuristics.shortest_path_faster(G, source, target, weight=impedance)
 
     # cost to get to the destination:
     # the sum of the weight of all the edges from the path
@@ -138,14 +107,12 @@ def cost_path(G, source, target, vehicle_mass, impedance):
 
     # updates the weight of all edges of the scenario according
     # to the current weight of the vehicle
-    max_grade = max(list(nx.get_edge_attributes(G, "grade").values()))
-    G = Graph.update_weight(G, VEHICLE_MASS, max_grade)
+    G = Graph.update_weight(G, VEHICLE_MASS)
 
     return sum_path_costs, path
 
 
 def sum_costs_route(G, H, route, vehicle_mass, impedance):
-#def sum_costs_route(G, H, route, vehicle_mass, impedance=IMPEDANCE):
     """
     This function calculates the total cost of a route,
     according to the collect points in the scenario, and

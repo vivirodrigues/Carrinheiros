@@ -541,14 +541,14 @@ def main():
     for a in range(0, n_seeds):
 
         random.seed(get_seed(a))
-        print(get_seed(a))
+        print("Seed:", get_seed(a))
         longitudes = [random.gauss(mean_lon[0], sigma) for i in range(n_points)]
         latitudes = [random.gauss(mean_lat[0], sigma) for i in range(n_points)]
         stop_points = [(float(latitudes[i]), float(longitudes[i])) for i in range(len(latitudes))]
         [materials.update([((latitudes[i], longitudes[i]), material_weights[i])]) for i in range(len(latitudes))]
         json_files = create_route(stop_points, materials, json_files, a)
 
-    print(json_files)
+    print("Files with results:", json_files)
 
 
 if __name__ == "__main__":
