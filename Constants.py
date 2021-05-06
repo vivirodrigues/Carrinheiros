@@ -1,6 +1,6 @@
 MAPS_DIRECTORY = 'data/maps/'
 RESULTS_DIRECTORY = 'data/results/'
-FILE_NAME_OSM = 'map.osm'
+# FILE_NAME_OSM = 'map.osm'
 VEHICLE = 'pedestrian'
 VEHICLE_MASS = 110
 AIR_DENSITY = 1.2  # km / m³

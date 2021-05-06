@@ -15,9 +15,8 @@ from geography import GeoTiff, OpenSteetMap, Coordinates, Map
 from general import Saves
 from route import Graph_Collect
 from simulation import Map_Simulation
-import Carrinheiro
+from route import Heuristics
 import osmnx as ox
-from scipy import constants
 from route import Graph
 
 
@@ -400,7 +399,7 @@ def create_route(stop_points, material_weights, json_files, n = None):
     # it is a complete graph with the number of nodes equivalent to number of collect points
     H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
 
-    # dictionary with adjacent edges informations
+    # dictionary with adjacent edge information
     dict_edges_net = Map_Simulation.edges_net(NET)
 
     # it is necessary configure the edges on simulator to allow the carrinheiro's type of vehicle
@@ -411,30 +410,21 @@ def create_route(stop_points, material_weights, json_files, n = None):
     for j in politics:
 
         # orders the collect points and creates the route
-        cost_total, paths = Carrinheiro.nearest_neighbor_path(G, H, node_source, node_target, j)
+        cost_total, paths, edges_update = Heuristics.nearest_neighbor(G, H, node_source, node_target, j)
 
         # simulation results dictionary
         result_work = {}
         [result_work.update([(str(i), [stop_points[i]])]) for i in range(len(stop_points))]
 
-        #list1 = []
-        #for i in paths:
-        #    list1 += i[1:]
+        sumo_route = [dict_edges_net.get((int(paths[i]), int(paths[i + 1]))) for i in
+                      range(len(paths) - 1)]
 
-        sumo_route = []
-        edges_stop = []
-
-        for i in paths:
-
-            # transform the graph route in a SUMO route
-            # it is necessary because edge name is different on SUMO
-            route_edges = Map_Simulation.nodes_to_edges(i, dict_edges_net)
-            edges_stop.append(route_edges[0])
-            sumo_route.extend(route_edges)
+        # edge to stop and update the vehicle weight
+        edges_stop = [dict_edges_net.get((int(i[0]), int(i[1]))) for i in edges_update]
 
         # creates a dictionary with mass increment value of the edges
         edges_mass_increments = {}
-        [edges_mass_increments.update([(edges_stop[i], nodes_mass_increment.get(paths[i][0]))]) for i in range(len(edges_stop))]
+        [edges_mass_increments.update([(edges_stop[i], nodes_mass_increment.get(edges_update[i][0]))]) for i in range(len(edges_update))]
 
         out = file_name_json + '_' + j + '_speed_'+ str(SPEED_FACTOR) + '.xml'
 
@@ -446,7 +436,7 @@ def create_route(stop_points, material_weights, json_files, n = None):
         write_json(result_work, file_name_json + '_coords_' + j + '_speed_' + str(SPEED_FACTOR))
 
         # plot the route
-        fig, ax = ox.plot_graph_routes(G, paths, route_linewidth=6, node_size=0, bgcolor='w')
+        fig, ax = ox.plot_graph_route(G, paths, route_linewidth=6, node_size=0, bgcolor='w', bbox=(-19.910, -19.940, -43.932, -43.958), figsize=(7.7, 10))
 
     return json_files
 
@@ -553,14 +543,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# scenarios: Campinas, Belém, BH
-    #mean_lon = [-43.9438]
-    #mean_lat = [-19.9202]
-    # lon: -48.47000   -43.9438
-    # lat: -1.46000    -19.9202
-
-# if politics is different of weight, calculates
-        #if j != 'weight':
-         #   cost_total = calculate_work_total(G, paths, nodes_mass_increment)
-         # result_work.update([('work_total', float(cost_total))])

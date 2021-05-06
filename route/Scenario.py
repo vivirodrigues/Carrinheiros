@@ -1,12 +1,10 @@
 import geopy.distance
 import networkx as nx
 from geography import Map
-from route import Graph
 import osmnx as ox
 from Constants import *
 from shapely.geometry import Point, LineString
-import numpy as np
-from simulation.Map_Simulation import create_node, create_way, parse_file_tree, node_coordinates, delete_osm_items, \
+from simulation.Map_Simulation import create_node, create_way, parse_file_tree, node_coordinates, \
     get_nodes, edges_net, adjacent_nodes, edges_type
 
 
@@ -173,7 +171,6 @@ def nearest_edge(G, i):
     keys = [0, 0]
 
     keys[0], keys[1], key, shapely, distance_ = ox.get_nearest_edge(G, i, return_geom=True, return_dist=True)
-    # edges_array = ox.get_nearest_nodes(G, np.array([i[1]]), np.array([i[0]]), method='kdtree')
 
     attribute_x = nx.get_node_attributes(G, 'x')
     attribute_y = nx.get_node_attributes(G, 'y')
@@ -328,24 +325,3 @@ def cut(line, distance):
             return [
                 LineString(coords[:i] + [(cp.x, cp.y)]),
                 LineString([(cp.x, cp.y)] + coords[i:])]
-
-
-if __name__ == '__main__':
-    G = ox.graph_from_bbox(-22.796008, -22.843953, -47.054891, -47.107718000000006, network_type='all')
-
-    stop_points = [(-22.820204, -47.085525), (-22.825029, -47.068495),
-                   (-22.824376, -47.070952), (-22.82503, -47.07410),
-                   (-22.82504, -47.07730), (-24.992554, -47.069115)]  # (-22.816008, -47.075614)]
-    # fig1, ax1 = ox.plot_graph(G, node_size=5, edge_color='#333333', bgcolor='k')
-    # Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test1')
-    weigths = {(-22.816639, -47.074891): (50, 'Kg'), (-22.818317, -47.083415): (30, 'Kg'),
-               (-22.820244, -47.085422): (15, 'Kg'), (-22.823953, -47.087718): (12, 'Kg')}
-    G, nodes_collect_and_coordinates, nodes_collect_and_weights = add_collect_points(G, stop_points, weigths)
-    G = Graph.set_node_elevation(G, '../' + MAPS_DIRECTORY + '22S48_ZN.tif')
-    G = Graph.edge_grades(G)
-    Graph.save_graph_file(G, '../' + MAPS_DIRECTORY, 'test.graphml')
-    # Graph.plot_graph(G)
-
-    weight = Graph._weight(G, 'weight')
-    distance, route = nx.bidirectional_dijkstra(G, 1000000002, 1000000011, weight)
-    print(route)
