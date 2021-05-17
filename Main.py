@@ -1,5 +1,5 @@
 from __future__ import division
-
+import pytest_benchmark as benchmark
 import os
 import sys
 import subprocess
@@ -11,13 +11,17 @@ from route import Scenario
 import json
 from decimal import Decimal, ROUND_HALF_UP
 from Constants import *
-from geography import GeoTiff, OpenSteetMap, Coordinates, Map
+from geography import GeoTiff, OpenSteetMap, Coordinates
 from general import Saves
 from route import Graph_Collect
 from simulation import Map_Simulation
-from route import Heuristics
 import osmnx as ox
+from route import Heuristics
 from route import Graph
+import cProfile
+from route.Heuristics import nearest_neighbor as nn
+from route.Heuristics import closest_insertion as ci
+from route.Heuristics import further_insertion as fi
 
 
 if 'SUMO_HOME' in os.environ:
@@ -121,6 +125,7 @@ def run(route, G, dict_edges_net, file_name_json, edges_weight, impedance):
 
     vehicle_weight = VEHICLE_MASS
     path_traveled = []
+    edge_mass_ok = []
 
     vehicle_id = "carrinheiro"
 
@@ -147,7 +152,7 @@ def run(route, G, dict_edges_net, file_name_json, edges_weight, impedance):
         dados.append({"x": x, "y": y, "z": z, "slope": slope})
 
         edge_id = traci.vehicle.getRoadID(vehicle_id)
-        if len(edge_id) > 0:
+        if len(edge_id) > 0 and step > 1 and edge_id[0] != ":":
 
             if step > 1 and edge_id[0] != ":":
 
@@ -156,21 +161,34 @@ def run(route, G, dict_edges_net, file_name_json, edges_weight, impedance):
 
                 max_speeds.append(time_streets(G, dict_edges_net, edge_id))
 
+                #print("edge_id", edge_id)
+
                 if edge_id != before_edge_id:
+
                     total_length += calculate_length(G, dict_edges_net, edge_id)
 
+                    index_must_be = len(path_traveled)
+                    index_edge_in_route = route.index(edge_id)
+                    if index_must_be != index_edge_in_route:
+                        must_be_set = set(route[index_must_be:index_edge_in_route])
+                        missing = [a for a in must_be_set if a not in edge_mass_ok and a in list(edges_weight.keys())]
+                        if len(missing) > 0:
+                            for item in missing:
+                                vehicle_weight += edges_weight.get(item)
+                                edge_mass_ok.append(item)
+
                     # if the edge is a stop point and the edge has not yet been traveled
-                    if edge_id in list(edges_weight.keys()) and edge_id not in path_traveled:
+                    if edge_id in list(edges_weight.keys()) and edge_id not in edge_mass_ok:
 
                         # the vehicle needs to stop to pick up the material
                         traci.vehicle.slowDown(vehicle_id, 0, 5)
 
                         # weight is added to the vehicle
                         vehicle_weight += edges_weight.get(edge_id)
+                        edge_mass_ok.append(edge_id)
 
                     before_edge_id = edge_id
                     path_traveled.append(edge_id)
-
         traci.simulationStep()
         vehicles = traci.simulation.getEndingTeleportIDList()
 
@@ -213,10 +231,10 @@ def run(route, G, dict_edges_net, file_name_json, edges_weight, impedance):
 
     traci.close()
     sys.stdout.flush()
-    write_json(pdf_power_dict, file_name_json + '_' + impedance + '_pdf' + '_speed_' + str(SPEED_FACTOR))
-    write_json(pdf_max_speed_dict, file_name_json + '_' + impedance + '_pdf_speeds_' + str(SPEED_FACTOR))
-    write_json(dicionario_power, file_name_json + '_' + impedance + '_speed_' + str(SPEED_FACTOR))
-    write_json(incline, file_name_json + '_' + impedance + '_i' + '_speed_' + str(SPEED_FACTOR))
+    write_json(pdf_power_dict, file_name_json + '_pdf' + '_speed_')
+    write_json(pdf_max_speed_dict, file_name_json + '_pdf_speeds_')
+    write_json(dicionario_power, file_name_json)
+    write_json(incline, file_name_json + '_i')
 
     return total_length
 
@@ -265,27 +283,7 @@ def netconvert_geotiff(name_file_osm, name_file_geotiff, name_file_output):
     output, error = process_netconvert.communicate()
 
 
-def calculate_work_total(G, paths, nodes_mass_increment):
-
-    sum_path_costs = 0
-    vehicle_mass = VEHICLE_MASS
-
-    for i in paths:
-
-        # updates the weight of all edges of the scenario according
-        # to the current weight of the vehicle
-        G = Graph.update_weight(G, vehicle_mass, speed_factor=False)
-
-        sum_path_costs += Graph_Collect.sum_costs(G, i, 'weight')
-        vehicle_mass += nodes_mass_increment.get(i[-1])
-
-        G = Graph.update_weight(G, VEHICLE_MASS, speed_factor=False)
-
-    return sum_path_costs
-
-
 def verify_graph_exists(file_name, stop_points, coordinates_list):
-
     try:
         G = ox.load_graphml(file_name)
         lats = [a_tuple[0] for a_tuple in stop_points]
@@ -324,13 +322,52 @@ def nodes_data(file_name, stop_points, material_weights, file_osm, geotiff):
     Scenario.simulation_edit_graph(G, file_osm)
     G = Graph.set_node_elevation(G, geotiff)
     G = Graph.edge_grades(G)
-    G = Graph.update_weight(G, VEHICLE_MASS)
+    #G = Graph.update_weight(G, VEHICLE_MASS)
     Graph.save_graph_file(G, file_name)
 
     return G, nodes_coordinates, nodes_mass_increment
 
 
-def create_route(stop_points, material_weights, json_files, n = None):
+def heuristic_combination(function, G, H, node_source, node_target, politic, heuristic, stop_points, dict_edges_net, nodes_mass, file_name):
+
+    start = time.time()
+
+    cost, paths, edges_update = function(G, H, node_source, node_target, politic, heuristic)
+    print("cost", cost, paths)
+
+    end = time.time()
+    time_total = end - start
+
+    # simulation results dictionary
+    result_work = {}
+    [result_work.update([(str(i), [stop_points[i]])]) for i in range(len(stop_points))]
+
+    sumo_route = [dict_edges_net.get((int(paths[i]), int(paths[i + 1]))) for i in range(len(paths) - 1)]
+    edges_stop = [dict_edges_net.get((int(i[0]), int(i[1]))) for i in edges_update]
+
+    # creates a dictionary with mass increment value of the edges
+    edges_mass_increments = {}
+    [edges_mass_increments.update([(edges_stop[i], nodes_mass.get(edges_update[i][0]))]) for i in
+     range(len(edges_update))]
+
+    out = file_name + '_' + politic + '_heuristic_' + heuristic + '_' + str(function) + '.xml'
+    file_name = file_name + '_' + politic + '_heuristic_' + heuristic + '_' + str(function)
+
+    # it simulates the 'carrinheiro' on the route and returns the total distance traveled
+    total_length = start_simulation('sumo', SUMO_CONFIG, out, sumo_route, G, dict_edges_net, file_name,
+                                    edges_mass_increments, politic)
+    result_work.update([('total_length', float(total_length))])
+    result_work.update([('total_time', float(time_total))])
+
+    # write the json with simulation results
+    write_json(result_work, file_name + '_coords_' + politic + '_heuristic_' + heuristic + '_nn')
+
+    # plot the route
+    # fig, ax = ox.plot_graph_route(G, paths, route_linewidth=6, node_size=0, bgcolor='w')
+
+
+# @profile
+def create_route(stop_points, material_weights, json_files, n = None, n_points=10):
 
     # the desired geotiff name to the mosaic
     mosaic_geotiff_name = 'out.tif'
@@ -355,12 +392,12 @@ def create_route(stop_points, material_weights, json_files, n = None):
     G_file = Saves.def_file_name(MAPS_DIRECTORY, stop_points, '.graphml')
 
     # defines the json file name of the simulation results
-    file_name_json = Saves.def_file_name(RESULTS_DIRECTORY, stop_points, '') + '_' + str(n)
+    file_name_json = Saves.def_file_name(RESULTS_DIRECTORY, stop_points, '') + '_' + str(n) + '_' + str(n_points)
     json_files.append(file_name_json)
 
     # the coordinates of the area is used to verify if the graph exists
     coordinates_list = Coordinates.coordinates_list_bbox(stop_points)
-
+    """
     # if the graph exists, it is not necessary to do all configurations on the graph
     if verify_graph_exists(G_file, stop_points, coordinates_list) is True:
 
@@ -372,20 +409,22 @@ def create_route(stop_points, material_weights, json_files, n = None):
         G, nodes_coordinates, nodes_mass_increment = nodes_data(G_file, stop_points, material_weights, osm_file, geotiff_name)
 
     else:
+    """
+    # delete collect points added before in the osm file
+    Map_Simulation.delete_osm_items(osm_file)
 
-        # delete collect points added before in the osm file
-        Map_Simulation.delete_osm_items(osm_file)
+    # if there are ways that can be bidirectional to 'carrinheiro'
+    if BIDIRECTIONAL is True:
+        Map_Simulation.edit_map(osm_file)
 
-        # if there are ways that can be bidirectional to 'carrinheiro'
-        if BIDIRECTIONAL is True:
-            Map_Simulation.edit_map(osm_file)
+    # creates the osmnx graph based on the geographic area
+    # Scenario graph (paths are edges and junctions are nodes)
+    G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
 
-        # creates the osmnx graph based on the geographic area
-        # Scenario graph (paths are edges and junctions are nodes)
-        G = ox.graph_from_bbox(max_lat, min_lat, max_lon, min_lon, network_type='all')
+    # configure the graph
+    G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights, osm_file, G_file)
 
-        # configure the graph
-        G, nodes_coordinates, nodes_mass_increment = Graph.configure_graph_simulation(G, geotiff_name, stop_points, material_weights, osm_file, G_file)
+    ###########
 
     # the starting point is the first collect point of the vector
     index_source = list(nodes_coordinates.values()).index(stop_points[0])
@@ -399,44 +438,55 @@ def create_route(stop_points, material_weights, json_files, n = None):
     # it is a complete graph with the number of nodes equivalent to number of collect points
     H = Graph_Collect.create_graph_route(nodes_coordinates, nodes_mass_increment)
 
-    # dictionary with adjacent edge information
+    # dictionary with adjacent edges information
     dict_edges_net = Map_Simulation.edges_net(NET)
 
     # it is necessary configure the edges on simulator to allow the carrinheiro's type of vehicle
     Map_Simulation.allow_vehicle(NET)
 
-    politics = ['weight', 'impedance', 'distance']
+    politics = ['weight', 'length']
+    heuristics = ['SPFA', 'dijkstra', 'astar']
+    """
+    # Nearest
+    heuristic_combination(nn, G, H, node_source, node_target, politics[0], heuristics[0], stop_points, dict_edges_net, nodes_mass_increment, file_name_json)
+    heuristic_combination(nn, G, H, node_source, node_target, politics[0], heuristics[1], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(nn, G, H, node_source, node_target, politics[0], heuristics[2], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(nn, G, H, node_source, node_target, politics[1], heuristics[0], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(nn, G, H, node_source, node_target, politics[1], heuristics[1], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(nn, G, H, node_source, node_target, politics[1], heuristics[2], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
 
-    for j in politics:
-
-        # orders the collect points and creates the route
-        cost_total, paths, edges_update = Heuristics.nearest_neighbor(G, H, node_source, node_target, j)
-
-        # simulation results dictionary
-        result_work = {}
-        [result_work.update([(str(i), [stop_points[i]])]) for i in range(len(stop_points))]
-
-        sumo_route = [dict_edges_net.get((int(paths[i]), int(paths[i + 1]))) for i in
-                      range(len(paths) - 1)]
-
-        # edge to stop and update the vehicle weight
-        edges_stop = [dict_edges_net.get((int(i[0]), int(i[1]))) for i in edges_update]
-
-        # creates a dictionary with mass increment value of the edges
-        edges_mass_increments = {}
-        [edges_mass_increments.update([(edges_stop[i], nodes_mass_increment.get(edges_update[i][0]))]) for i in range(len(edges_update))]
-
-        out = file_name_json + '_' + j + '_speed_'+ str(SPEED_FACTOR) + '.xml'
-
-        # it simulates the 'carrinheiro' on the route and returns the total distance traveled
-        total_length = start_simulation('sumo', SUMO_CONFIG, out, sumo_route, G, dict_edges_net, file_name_json, edges_mass_increments, j)
-        result_work.update([('total_length', float(total_length))])
-
-        # write the json with simulation results
-        write_json(result_work, file_name_json + '_coords_' + j + '_speed_' + str(SPEED_FACTOR))
-
-        # plot the route
-        fig, ax = ox.plot_graph_route(G, paths, route_linewidth=6, node_size=0, bgcolor='w', bbox=(-19.910, -19.940, -43.932, -43.958), figsize=(7.7, 10))
+    # Closest
+    heuristic_combination(ci, G, H, node_source, node_target, politics[0], heuristics[0], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(ci, G, H, node_source, node_target, politics[0], heuristics[1], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(ci, G, H, node_source, node_target, politics[0], heuristics[2], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(ci, G, H, node_source, node_target, politics[1], heuristics[0], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(ci, G, H, node_source, node_target, politics[1], heuristics[1], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(ci, G, H, node_source, node_target, politics[1], heuristics[2], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    """
+    # Further
+    heuristic_combination(fi, G, H, node_source, node_target, politics[0], heuristics[0], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(fi, G, H, node_source, node_target, politics[0], heuristics[1], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(fi, G, H, node_source, node_target, politics[0], heuristics[2], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(fi, G, H, node_source, node_target, politics[1], heuristics[0], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(fi, G, H, node_source, node_target, politics[1], heuristics[1], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
+    heuristic_combination(fi, G, H, node_source, node_target, politics[1], heuristics[2], stop_points, dict_edges_net,
+                          nodes_mass_increment, file_name_json)
 
     return json_files
 
@@ -449,17 +499,16 @@ def get_seed(seed_id):
                         the seed_id is the 'seeds' vector index
     :return:
     """
-    seeds = [960703545, 1277478588, 1936856304,
-             186872697, 1859168769, 1598189534,
+    seeds = [1859168769, 1598189534,
              1822174485, 1871883252, 694388766,
-             188312339, 773370613, 2125204119,
+             188312339, 773370613, 2125204119, #0,1,2,3,4,5
              2041095833, 1384311643, 1000004583,
              358485174, 1695858027, 762772169,
-             437720306, 939612284, 425414105,
-             1998078925, 981631283, 1024155645,
+             437720306, 939612284, 1998078925,
+             981631283, 1024155645, 1147024708, #19
              558746720, 1349341884, 678622600,
              1319566104, 538474442, 722594620,
-             1700738670, 1995749838, 1147024708,
+             1700738670, 1995749838, 1936856304,
              346983590, 565528207, 513791680,
              1996632795, 2081634991, 1769370802,
              349544396, 1996610406, 1973272912,
@@ -470,7 +519,8 @@ def get_seed(seed_id):
              898723423, 1644999263, 985046914,
              1859531344, 1024155645, 764283187,
              778794064, 683102175, 1334983095,
-             1072664641, 999157082]
+             1072664641, 999157082, 1277478588,
+             960703545, 186872697, 425414105]
     return seeds[seed_id]
 
 
@@ -485,16 +535,16 @@ def main():
     """
 
     # number of collect points
-    n_points = 10
+    n_points = 15 #10
 
     # maximum increment of vehicle weight at the collect point (material mass)
-    max_mass_material = 50
+    max_mass_material = 5
 
     # random seed of mass increment
     random.seed(get_seed(0))
 
     # scenarios: 'Belo Horizonte' and 'Belem'
-    city = 'Belo Horizonte'
+    city = 'Salvador'
 
     # mean of the gaussian function
     if city == 'Belo Horizonte':
@@ -503,12 +553,15 @@ def main():
     elif city == 'Belem':
         mean_lon = [-48.47000]
         mean_lat = [-1.46000]
+    elif city == 'Salvador':
+        mean_lon = [-38.487310]
+        mean_lat = [-12.947855]
     else:
         mean_lon = [-48.47000]
         mean_lat = [-1.46000]
 
     # standard deviation of the gaussian function
-    sigma = 0.005
+    sigma = 0.002 #0.005
 
     # vector with vehicle weight increment in the collect points
     mass_increments = [random.randint(0, max_mass_material) for i in range(n_points-2)]
@@ -523,22 +576,22 @@ def main():
     material_weights.insert(0, (0, 'Kg'))
 
     # number of repetitions of the simulations
-    n_seeds = 1
+    n_seeds = 31
 
     json_files = []
     materials = {}
 
-    for a in range(0, n_seeds):
+    for a in range(1, n_seeds):
 
         random.seed(get_seed(a))
-        print("Seed:", get_seed(a))
+        print(get_seed(a))
         longitudes = [random.gauss(mean_lon[0], sigma) for i in range(n_points)]
         latitudes = [random.gauss(mean_lat[0], sigma) for i in range(n_points)]
         stop_points = [(float(latitudes[i]), float(longitudes[i])) for i in range(len(latitudes))]
         [materials.update([((latitudes[i], longitudes[i]), material_weights[i])]) for i in range(len(latitudes))]
-        json_files = create_route(stop_points, materials, json_files, a)
+        json_files = create_route(stop_points, materials, json_files, a, n_points)
 
-    print("Files with results:", json_files)
+    print(json_files)
 
 
 if __name__ == "__main__":
